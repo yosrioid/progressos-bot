@@ -1,11 +1,12 @@
 from datetime import date
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Intent = Literal["create_task", "unsupported"]
 Priority = Literal["low", "medium", "high", "urgent"]
 Language = Literal["id", "en", "unknown"]
+QuickCaptureType = Literal["task", "blocker", "work_log", "daily_progress", "learning"]
 
 
 class CreateTaskPayload(BaseModel):
@@ -51,10 +52,30 @@ class ProgressOSActionRequest(BaseModel):
     parsed_action: ParsedAction
 
 
+class ProgressOSQuickCaptureRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: QuickCaptureType
+    title: str = Field(min_length=1, max_length=180)
+    project_name: str | None = Field(default=None, min_length=1, max_length=180)
+    notes: str | None = Field(default=None, max_length=5000)
+    date: date | None = None
+    duration_minutes: int | None = Field(default=None, gt=0)
+
+
 class ProgressOSActionResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    status: str
+    status: str | None = None
     message: str | None = None
     action_id: str | None = None
+    data: dict[str, Any] | None = None
+    record: dict[str, Any] | None = None
+    record_path: str | None = None
 
+
+class ProgressOSValidationErrorResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str
+    errors: dict[str, list[str]] = Field(default_factory=dict)

@@ -14,6 +14,7 @@ POST /api/v1/quick-capture
 Authorization: Bearer <PROGRESSOS_API_TOKEN>
 Content-Type: application/json
 Accept: application/json
+Idempotency-Key: <unique-key-per-confirmed-submit>
 ```
 
 ## Request Body
@@ -45,6 +46,20 @@ Optional fields:
 
 Use `Idempotency-Key` for retries.
 
+## Current Bot Mapping
+
+The Telegram flow stores a confirmed `ProgressOSActionRequest` internally, then maps it to
+the quick-capture payload before calling Laravel.
+
+Current supported mapping:
+
+- `create_task` -> `type: "task"`
+- `payload.title` -> `title`
+- `payload.due_date` -> `date`
+- `original_text`, source channel, source user, source chat, and optional description -> `notes`
+
+Unsupported actions are not submitted.
+
 ## Expected Success Response
 
 ```json
@@ -72,3 +87,6 @@ Use `Idempotency-Key` for retries.
   }
 }
 ```
+
+The bot treats `422` responses as validation errors and shows the response `message` to the
+user without exposing request headers, bearer tokens, or raw exception traces.

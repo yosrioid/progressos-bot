@@ -102,7 +102,7 @@ Manual verification:
 
 ## Phase 2: ProgressOS Quick Capture Completion
 
-Status: planned.
+Status: in progress.
 
 Goal: complete the full quick-capture contract against `POST /api/v1/quick-capture`.
 
@@ -148,6 +148,14 @@ Tests to add:
 - Timeout/retry path.
 - Idempotency key is included.
 - Response with missing optional fields remains safe.
+
+Current implementation slice:
+
+- `create_task` maps to quick-capture `task`.
+- The client adds `Idempotency-Key` to every confirmed submit.
+- The client retries timeout, network, and 5xx failures with the same idempotency key.
+- Laravel `422` validation responses are parsed into a typed validation error.
+- Telegram shows safe validation/transient/client error messages.
 
 ## Phase 3: Expanded Capture Intents
 
