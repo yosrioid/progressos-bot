@@ -1,0 +1,65 @@
+from collections.abc import Mapping
+from typing import Any
+
+import pytest
+
+from progressos_bot.ai.parser import MessageParser
+
+
+class FakeGroqClient:
+    def __init__(self, response: Mapping[str, Any]) -> None:
+        self.response = response
+
+    async def parse_message(self, message: str, today: str) -> Mapping[str, Any]:
+        assert message
+        assert today
+        return self.response
+
+
+@pytest.mark.asyncio
+async def test_parser_rejects_low_confidence() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "create_task",
+                "confidence": 0.2,
+                "language": "id",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                },
+                "user_confirmation_text": "Buat task Follow up invoice client A?",
+            }
+        ),
+        min_confidence=0.75,
+    )
+
+    with pytest.raises(ValueError, match="below minimum"):
+        await parser.parse("buat task follow up invoice")
+
+
+@pytest.mark.asyncio
+async def test_parser_accepts_supported_action() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "create_task",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                },
+                "user_confirmation_text": "Buat task Follow up invoice client A?",
+            }
+        ),
+        min_confidence=0.75,
+    )
+
+    action = await parser.parse("buat task follow up invoice")
+
+    assert action.intent == "create_task"
