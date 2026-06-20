@@ -86,6 +86,8 @@ Unsupported or ambiguous messages must produce `unsupported`, not a guessed acti
 
 - [Bot rules](docs/RULES.md)
 - [AI contract](docs/AI_CONTRACT.md)
+- [Product phases](docs/PHASES.md)
+- [Python engineering guide](docs/PYTHON_ENGINEERING_GUIDE.md)
 - [ProgressOS API research](docs/PROGRESSOS_API_RESEARCH.md)
 - [ProgressOS API contract](docs/PROGRESSOS_API_CONTRACT.md)
 - [Security notes](docs/SECURITY.md)
