@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -31,7 +32,7 @@ class ProgressOSTelegramBot:
         self._progressos = progressos
         self._pending: PendingActions = {}
 
-    def build_application(self) -> Application:
+    def build_application(self) -> Any:
         app = Application.builder().token(self._token).build()
         app.add_handler(CommandHandler("start", self._handle_start))
         app.add_handler(CommandHandler("cancel", self._handle_cancel))
