@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as Date
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -14,7 +14,7 @@ class CreateTaskPayload(BaseModel):
 
     title: str = Field(min_length=3, max_length=180)
     description: str | None = Field(default=None, max_length=2000)
-    due_date: date | None = None
+    due_date: Date | None = None
     priority: Priority = "medium"
 
 
@@ -59,7 +59,7 @@ class ProgressOSQuickCaptureRequest(BaseModel):
     title: str = Field(min_length=1, max_length=180)
     project_name: str | None = Field(default=None, min_length=1, max_length=180)
     notes: str | None = Field(default=None, max_length=5000)
-    date: date | None = None
+    date: Date | None = None
     duration_minutes: int | None = Field(default=None, gt=0)
 
 
