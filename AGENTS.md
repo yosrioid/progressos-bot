@@ -4,6 +4,8 @@
 
 - Communicate with the user in Indonesian unless they explicitly switch language.
 - Keep changes scoped to the requested task.
+- Do not push directly to `main` unless the user explicitly asks for it.
+- For new work, create a branch first using `feat/...`, `fix/...`, `docs/...`, or `chore/...`, then push the branch and open a PR to `main`.
 - Do not bypass ProgressOS Laravel APIs or write directly to the ProgressOS database.
 - Treat Telegram as the first channel adapter, not the whole product. Keep core parser, schemas, and ProgressOS client channel-neutral where practical.
 
