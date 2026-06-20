@@ -44,7 +44,8 @@ class ProgressOSTelegramBot:
         if update.message is None:
             return
         await update.message.reply_text(
-            "Kirim instruksi singkat. Saya akan ubah menjadi payload ProgressOS dan minta konfirmasi."
+            "Kirim instruksi singkat. "
+            "Saya akan ubah menjadi payload ProgressOS dan minta konfirmasi."
         )
 
     async def _handle_cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -124,4 +125,3 @@ class ProgressOSTelegramBot:
 
         message = response.message or "Action submitted"
         await query.edit_message_text(f"ProgressOS: {message}")
-
