@@ -202,7 +202,7 @@ Suggested implementation order:
 
 ## Phase 4: Read-Only Commands
 
-Status: in progress.
+Status: complete.
 
 Goal: let users ask ProgressOS for read-only status summaries without changing data.
 
@@ -213,7 +213,7 @@ Commands:
 - `/search <query>` - implemented.
 - `/overdue` - implemented.
 - `/kanban` - implemented.
-- `/learning_stats`
+- `/learning_stats` - implemented.
 
 Rules:
 

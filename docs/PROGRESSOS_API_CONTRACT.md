@@ -163,3 +163,15 @@ The bot formats kanban columns from `columns` or a list-shaped `data` field, lim
 column to a few tasks for chat readability. Empty responses show `Tidak ada data kanban.`.
 Unauthorized responses are handled with a safe generic message without exposing raw server
 details.
+
+## Read-Only Learning Stats
+
+```http
+GET /api/v1/learning/stats
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+The bot formats learning metrics from `stats`, `metrics`, or a list-shaped `data` field.
+Empty responses show `Tidak ada statistik learning.`. Unauthorized responses are handled
+with a safe generic message without exposing raw server details.

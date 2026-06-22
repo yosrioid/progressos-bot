@@ -4,20 +4,20 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 4: Read-Only Commands.
+Phase 5: User Identity And Authorization.
 
 Current focus:
 
-- Add read-only ProgressOS commands.
-- Keep read responses concise and channel-friendly.
-- Respect ProgressOS authorization on every read endpoint.
-- Handle empty, unauthorized, and server-error responses safely.
-- CI-gated Phase 4 slices.
+- Move from one shared ProgressOS API token toward per-user authorization.
+- Map Telegram user IDs to ProgressOS users.
+- Block unknown or revoked users before submit/read actions.
+- Keep ProgressOS as the final authorization gate.
+- CI-gated Phase 5 slices.
 
 ## Next Milestones
 
-1. Add `/learning_stats`.
-2. Complete Phase 4 status after read-only commands are covered.
+1. Add channel user identity model.
+2. Add Telegram allowlist bootstrap.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.

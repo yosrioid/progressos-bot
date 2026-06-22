@@ -982,3 +982,95 @@ async def test_get_kanban_raises_transient_error_for_server_error() -> None:
 
     with pytest.raises(ProgressOSTransientError):
         await client.get_kanban()
+
+
+@pytest.mark.asyncio
+async def test_get_learning_stats_returns_concise_user_message() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Learning stats",
+                "stats": [
+                    {"label": "Total learning", "value": 12},
+                    {"label": "This week", "value": 3},
+                ],
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_learning_stats()
+
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.method == "GET"
+    assert request.url.path == "/api/v1/learning/stats"
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert response.to_user_message() == (
+        "Learning stats\n"
+        "1. Total learning: 12\n"
+        "2. This week: 3"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_learning_stats_handles_empty_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"stats": []})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_learning_stats()
+
+    assert response.stats == []
+    assert response.to_user_message() == "Tidak ada statistik learning."
+
+
+@pytest.mark.asyncio
+async def test_get_learning_stats_rejects_unauthorized_response_safely() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"message": "Forbidden details"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSClientError, match="menolak akses learning stats"):
+        await client.get_learning_stats()
+
+
+@pytest.mark.asyncio
+async def test_get_learning_stats_raises_transient_error_for_server_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"message": "Temporary failure"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.get_learning_stats()

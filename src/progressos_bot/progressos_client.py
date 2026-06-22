@@ -13,6 +13,7 @@ from progressos_bot.schemas import (
     ProgressOSActionResponse,
     ProgressOSDashboardResponse,
     ProgressOSKanbanResponse,
+    ProgressOSLearningStatsResponse,
     ProgressOSOverdueResponse,
     ProgressOSQuickCaptureRequest,
     ProgressOSSearchResponse,
@@ -239,6 +240,33 @@ class ProgressOSClient:
                 raise ProgressOSClientError("ProgressOS menolak request kanban.") from exc
 
             return ProgressOSKanbanResponse.model_validate(response.json())
+
+    async def get_learning_stats(self) -> ProgressOSLearningStatsResponse:
+        async with httpx.AsyncClient(timeout=self._timeout, transport=self._transport) as client:
+            try:
+                response = await client.get(
+                    f"{self._base_url}/api/v1/learning/stats",
+                    headers=self._headers,
+                )
+            except (httpx.TimeoutException, httpx.NetworkError) as exc:
+                raise ProgressOSTransientError(
+                    "ProgressOS belum bisa dihubungi. Coba lagi sebentar."
+                ) from exc
+
+            if response.status_code in {401, 403}:
+                raise ProgressOSClientError("ProgressOS menolak akses learning stats.")
+
+            if response.status_code >= 500:
+                raise ProgressOSTransientError(
+                    "ProgressOS sedang bermasalah. Coba lagi sebentar."
+                )
+
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise ProgressOSClientError("ProgressOS menolak request learning stats.") from exc
+
+            return ProgressOSLearningStatsResponse.model_validate(response.json())
 
     def build_quick_capture_request(
         self, request: ProgressOSActionRequest

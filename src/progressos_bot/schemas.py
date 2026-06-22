@@ -470,3 +470,53 @@ class ProgressOSKanbanResponse(BaseModel):
         if len(self.columns) > 6:
             lines.append(f"...dan {len(self.columns) - 6} kolom lain.")
         return "\n".join(lines)
+
+
+class ProgressOSLearningStat(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    label: str | None = None
+    name: str | None = None
+    title: str | None = None
+    value: str | int | float | None = None
+    count: int | None = None
+
+    def to_user_line(self, index: int) -> str:
+        label = self.label or self.name or self.title or "Learning metric"
+        value = self.value if self.value is not None else self.count
+        if value is None:
+            return f"{index}. {label}"
+        return f"{index}. {label}: {value}"
+
+
+class ProgressOSLearningStatsResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    stats: list[ProgressOSLearningStat] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_stats(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "stats" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "stats": raw_data}
+
+        metrics = data.get("metrics")
+        if isinstance(metrics, list):
+            return {**data, "stats": metrics}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.stats:
+            return self.message or "Tidak ada statistik learning."
+
+        header = self.message or "Learning stats:"
+        lines = [stat.to_user_line(index) for index, stat in enumerate(self.stats[:10], start=1)]
+        if len(self.stats) > 10:
+            lines.append(f"...dan {len(self.stats) - 10} metrik lain.")
+        return "\n".join([header, *lines])
