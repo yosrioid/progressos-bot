@@ -365,7 +365,7 @@ Goal: make the bot easy to operate and debug safely.
 Features:
 
 - Structured JSON logging.
-- Request correlation IDs.
+- Request correlation IDs - implemented for core flow results and JSON logs.
 - Metrics for parse success, confirmation rate, submit success, and submit failure.
 - Admin command for version/build info.
 - Safe diagnostic command for configuration status.

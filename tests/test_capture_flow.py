@@ -69,6 +69,7 @@ def make_flow(
         parser=parser,
         progressos=client,
         pending=InMemoryPendingActionStore(ttl_seconds=60),
+        correlation_id_factory=lambda: "corr-capture",
     )
     return flow, parser, client
 
@@ -84,6 +85,7 @@ async def test_begin_capture_stores_supported_action_without_telegram_classes() 
 
     assert result.status == "confirmation_required"
     assert result.user_message == "Buat task Follow up invoice client A?"
+    assert result.correlation_id == "corr-capture"
     assert parser.parsed_messages == ["buat task follow up invoice client A"]
 
 
@@ -125,6 +127,7 @@ async def test_submit_confirmed_capture_sends_pending_action_to_progressos() -> 
     )
 
     assert result.submitted is True
+    assert result.correlation_id == "corr-capture"
     assert result.user_message == "Capture tersimpan.\nLokasi: /tasks/1"
     assert len(client.submitted_requests) == 1
     request = client.submitted_requests[0]

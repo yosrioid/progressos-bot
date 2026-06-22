@@ -14,6 +14,9 @@ class JsonFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
+        correlation_id = getattr(record, "correlation_id", None)
+        if isinstance(correlation_id, str) and correlation_id:
+            payload["correlation_id"] = correlation_id
         return json.dumps(payload, ensure_ascii=True, sort_keys=True)
 
 
