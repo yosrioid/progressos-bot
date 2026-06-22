@@ -19,17 +19,16 @@ from progressos_bot.identity import (
     UserAuthorizationError,
     UserMappingError,
 )
+from progressos_bot.pending import InMemoryPendingActionStore
 from progressos_bot.progressos_client import (
     ProgressOSClient,
     ProgressOSClientError,
     ProgressOSTransientError,
     ProgressOSValidationError,
 )
-from progressos_bot.schemas import ParsedAction, ProgressOSActionRequest
+from progressos_bot.schemas import ProgressOSActionRequest
 
 logger = logging.getLogger(__name__)
-
-PendingActions = dict[str, tuple[str, ParsedAction]]
 
 
 class ProgressOSTelegramBot:
@@ -40,13 +39,17 @@ class ProgressOSTelegramBot:
         progressos: ProgressOSClient,
         authorizer: TelegramAllowlist,
         user_map: TelegramProgressOSUserMap,
+        confirmation_ttl_seconds: int = 900,
+        pending_store: InMemoryPendingActionStore | None = None,
     ) -> None:
         self._token = token
         self._parser = parser
         self._progressos = progressos
         self._authorizer = authorizer
         self._user_map = user_map
-        self._pending: PendingActions = {}
+        self._pending = pending_store or InMemoryPendingActionStore(
+            ttl_seconds=confirmation_ttl_seconds
+        )
 
     def build_application(self) -> Any:
         app = Application.builder().token(self._token).build()
@@ -79,7 +82,7 @@ class ProgressOSTelegramBot:
             return
         if not await self._authorize_message(update):
             return
-        self._pending.pop(str(update.effective_user.id), None)
+        self._pending.discard(str(update.effective_user.id))
         await update.message.reply_text("Draft dibatalkan.")
 
     async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -258,7 +261,7 @@ class ProgressOSTelegramBot:
             return
 
         user_key = str(update.effective_user.id)
-        self._pending[user_key] = (original_text, action)
+        self._pending.put(user_key, original_text, action)
 
         keyboard = InlineKeyboardMarkup(
             [
@@ -292,16 +295,17 @@ class ProgressOSTelegramBot:
         user_key = str(update.effective_user.id)
 
         if query.data == "cancel":
-            self._pending.pop(user_key, None)
+            self._pending.discard(user_key)
             await query.edit_message_text("Draft dibatalkan.")
             return
 
-        pending = self._pending.pop(user_key, None)
+        pending = self._pending.pop(user_key)
         if pending is None:
-            await query.edit_message_text("Tidak ada draft aktif.")
+            await query.edit_message_text("Tidak ada draft aktif atau draft sudah kedaluwarsa.")
             return
 
-        original_text, action = pending
+        original_text = pending.original_text
+        action = pending.parsed_action
         try:
             progressos_user_id = self._user_map.resolve(identity)
         except UserMappingError as exc:

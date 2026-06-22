@@ -75,6 +75,7 @@ Reject the AI result when:
 8. Read commands require a Telegram-to-ProgressOS user mapping.
 9. Confirmed writes require a Telegram-to-ProgressOS user mapping.
 10. Confirmed writes must include source identity, parser summary, submit timestamp, and idempotency key in audit notes.
+11. Pending confirmations expire after `CONFIRMATION_TTL_SECONDS`.
 
 ## ProgressOS Integration Rules
 
