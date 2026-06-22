@@ -18,6 +18,10 @@ Telegram access is bootstrapped with `TELEGRAM_ALLOWED_USER_IDS`, a comma-separa
 of stable Telegram user IDs. An empty allowlist rejects all Telegram users. Display names
 are never trusted for authorization.
 
+Access revocation is bootstrapped with `TELEGRAM_REVOKED_USER_IDS`, a comma-separated list
+of stable Telegram user IDs. Revoked IDs are rejected even when they still appear in the
+allowlist.
+
 Telegram-to-ProgressOS attribution is bootstrapped with `TELEGRAM_PROGRESSOS_USER_MAP`.
 Use comma-separated `telegram_user_id:progressos_user_id` pairs. The bot rejects confirmed
 write actions when the Telegram user is not mapped.

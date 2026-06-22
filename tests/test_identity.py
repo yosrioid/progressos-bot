@@ -31,6 +31,16 @@ def test_empty_telegram_allowlist_rejects_all_users() -> None:
     assert not allowlist.is_authorized(identity)
 
 
+def test_telegram_allowlist_rejects_revoked_user() -> None:
+    allowlist = TelegramAllowlist.from_csv("123,456", revoked_value="123")
+    identity = ChannelUserIdentity(channel="telegram", channel_user_id="123")
+
+    assert allowlist.is_revoked(identity)
+    assert not allowlist.is_authorized(identity)
+    with pytest.raises(UserAuthorizationError, match="dicabut"):
+        allowlist.require_authorized(identity)
+
+
 def test_telegram_progressos_user_map_resolves_configured_user() -> None:
     user_map = TelegramProgressOSUserMap.from_csv("123:77,456:88")
     identity = ChannelUserIdentity(channel="telegram", channel_user_id="123")
