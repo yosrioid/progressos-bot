@@ -9,6 +9,7 @@ Supported intents:
 - create_blocker
 - log_work
 - log_daily_progress
+- capture_learning
 - unsupported
 
 Use unsupported when the user asks for anything outside the supported intents, when required data
@@ -38,6 +39,12 @@ For log_daily_progress payload:
 - date: YYYY-MM-DD or null
 - project_name: string or null
 
+For capture_learning payload:
+- title: required string, 3-180 characters
+- description: string or null
+- date: YYYY-MM-DD or null
+- project_name: string or null
+
 Use language:
 - id for Indonesian
 - en for English
@@ -45,7 +52,7 @@ Use language:
 
 Output schema:
 {
-  "intent": "create_task|create_blocker|log_work|log_daily_progress|unsupported",
+  "intent": "create_task|create_blocker|log_work|log_daily_progress|capture_learning|unsupported",
   "confidence": 0.0,
   "language": "id|en|unknown",
   "payload": {},

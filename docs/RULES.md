@@ -37,6 +37,7 @@ Allowed `intent` values:
 - `create_blocker`
 - `log_work`
 - `log_daily_progress`
+- `capture_learning`
 - `unsupported`
 
 Allowed `priority` values:

@@ -8,6 +8,7 @@ Intent = Literal[
     "create_blocker",
     "log_work",
     "log_daily_progress",
+    "capture_learning",
     "unsupported",
 ]
 Priority = Literal["low", "medium", "high", "urgent"]
@@ -51,6 +52,15 @@ class LogDailyProgressPayload(BaseModel):
     project_name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
+class CaptureLearningPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=3, max_length=180)
+    description: str | None = Field(default=None, max_length=2000)
+    date: Date | None = None
+    project_name: str | None = Field(default=None, min_length=1, max_length=120)
+
+
 class UnsupportedPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -68,9 +78,36 @@ class ParsedAction(BaseModel):
         | CreateBlockerPayload
         | LogWorkPayload
         | LogDailyProgressPayload
+        | CaptureLearningPayload
         | UnsupportedPayload
     )
     user_confirmation_text: str = Field(min_length=5, max_length=500)
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_payload_for_intent(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        intent = data.get("intent")
+        payload = data.get("payload")
+        if not isinstance(payload, dict):
+            return data
+
+        if intent == "create_task":
+            return {**data, "payload": CreateTaskPayload.model_validate(payload)}
+        if intent == "create_blocker":
+            return {**data, "payload": CreateBlockerPayload.model_validate(payload)}
+        if intent == "log_work":
+            return {**data, "payload": LogWorkPayload.model_validate(payload)}
+        if intent == "log_daily_progress":
+            return {**data, "payload": LogDailyProgressPayload.model_validate(payload)}
+        if intent == "capture_learning":
+            return {**data, "payload": CaptureLearningPayload.model_validate(payload)}
+        if intent == "unsupported":
+            return {**data, "payload": UnsupportedPayload.model_validate(payload)}
+
+        return data
 
     @model_validator(mode="after")
     def validate_payload_matches_intent(self) -> "ParsedAction":
@@ -86,6 +123,10 @@ class ParsedAction(BaseModel):
             self.payload, LogDailyProgressPayload
         ):
             raise ValueError("log_daily_progress intent requires LogDailyProgressPayload")
+        if self.intent == "capture_learning" and not isinstance(
+            self.payload, CaptureLearningPayload
+        ):
+            raise ValueError("capture_learning intent requires CaptureLearningPayload")
         if self.intent == "unsupported" and not isinstance(self.payload, UnsupportedPayload):
             raise ValueError("unsupported intent requires UnsupportedPayload")
         return self

@@ -84,6 +84,26 @@ def test_log_daily_progress_payload_is_valid() -> None:
     assert action.payload.title == "Backend integration progress"
 
 
+def test_capture_learning_payload_is_valid() -> None:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "capture_learning",
+            "confidence": 0.9,
+            "language": "id",
+            "payload": {
+                "title": "Telegram webhook retry strategy",
+                "description": "Use idempotency key when retrying quick-capture writes",
+                "date": "2026-06-22",
+                "project_name": "ProgressOS",
+            },
+            "user_confirmation_text": "Catat learning Telegram webhook retry strategy?",
+        }
+    )
+
+    assert action.intent == "capture_learning"
+    assert action.payload.title == "Telegram webhook retry strategy"
+
+
 def test_unknown_payload_fields_are_rejected() -> None:
     with pytest.raises(ValidationError):
         ParsedAction.model_validate(
@@ -172,5 +192,24 @@ def test_log_daily_progress_intent_rejects_work_log_payload_shape() -> None:
                     "project_name": "ProgressOS",
                 },
                 "user_confirmation_text": "Catat daily progress?",
+            }
+        )
+
+
+def test_capture_learning_intent_rejects_work_log_payload_shape() -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "capture_learning",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Implement Telegram webhook",
+                    "description": None,
+                    "date": "2026-06-22",
+                    "duration_minutes": 90,
+                    "project_name": "ProgressOS",
+                },
+                "user_confirmation_text": "Catat learning?",
             }
         )

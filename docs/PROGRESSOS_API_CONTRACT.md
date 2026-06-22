@@ -66,6 +66,9 @@ Current supported mapping:
 - `log_daily_progress` -> `type: "daily_progress"`
 - `log_daily_progress.payload.project_name` -> `project_name`
 - `log_daily_progress.payload.date` -> `date`
+- `capture_learning` -> `type: "learning"`
+- `capture_learning.payload.project_name` -> `project_name`
+- `capture_learning.payload.date` -> `date`
 
 Unsupported actions are not submitted.
 

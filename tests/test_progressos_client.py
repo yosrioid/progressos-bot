@@ -103,6 +103,29 @@ def make_daily_progress_action_request() -> ProgressOSActionRequest:
     )
 
 
+def make_learning_action_request() -> ProgressOSActionRequest:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "capture_learning",
+            "confidence": 0.9,
+            "language": "id",
+            "payload": {
+                "title": "Telegram webhook retry strategy",
+                "description": "Use idempotency key when retrying quick-capture writes",
+                "date": "2026-06-22",
+                "project_name": "ProgressOS",
+            },
+            "user_confirmation_text": "Catat learning Telegram webhook retry strategy?",
+        }
+    )
+    return ProgressOSActionRequest(
+        source_user_id="123",
+        source_chat_id="456",
+        original_text="catat learning retry webhook pakai idempotency key",
+        parsed_action=action,
+    )
+
+
 @pytest.mark.asyncio
 async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() -> None:
     seen_requests: list[httpx.Request] = []
@@ -240,6 +263,40 @@ async def test_submit_action_posts_daily_progress_quick_capture_payload() -> Non
 
 
 @pytest.mark.asyncio
+async def test_submit_action_posts_learning_quick_capture_payload() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(200, json={"message": "Learning captured."})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_learning_action_request())
+
+    assert response.message == "Learning captured."
+    assert len(seen_requests) == 1
+    payload = json.loads(seen_requests[0].content)
+    assert payload["type"] == "learning"
+    assert payload["title"] == "Telegram webhook retry strategy"
+    assert payload["project_name"] == "ProgressOS"
+    assert payload["date"] == "2026-06-22"
+    assert "Original message: catat learning retry webhook pakai idempotency key" in payload[
+        "notes"
+    ]
+    assert "Description: Use idempotency key when retrying quick-capture writes" in payload[
+        "notes"
+    ]
+
+
+@pytest.mark.asyncio
 async def test_submit_action_accepts_success_response_without_optional_fields() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Idempotency-Key"] == "fixed-key"
@@ -334,6 +391,27 @@ def test_build_quick_capture_request_maps_confirmed_daily_progress() -> None:
     assert quick_capture.duration_minutes is None
     assert quick_capture.notes is not None
     assert "Description: Quick-capture client and Telegram confirmation are done" in (
+        quick_capture.notes
+    )
+
+
+def test_build_quick_capture_request_maps_confirmed_learning() -> None:
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+    )
+
+    quick_capture = client.build_quick_capture_request(make_learning_action_request())
+
+    assert quick_capture.type == "learning"
+    assert quick_capture.title == "Telegram webhook retry strategy"
+    assert quick_capture.project_name == "ProgressOS"
+    assert quick_capture.date is not None
+    assert quick_capture.duration_minutes is None
+    assert quick_capture.notes is not None
+    assert "Description: Use idempotency key when retrying quick-capture writes" in (
         quick_capture.notes
     )
 
