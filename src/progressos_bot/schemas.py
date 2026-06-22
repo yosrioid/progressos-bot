@@ -73,6 +73,16 @@ class ProgressOSActionResponse(BaseModel):
     record: dict[str, Any] | None = None
     record_path: str | None = None
 
+    def to_user_message(self) -> str:
+        parts: list[str] = []
+        if self.message:
+            parts.append(self.message)
+        if self.record_path:
+            parts.append(f"Lokasi: {self.record_path}")
+        if parts:
+            return "\n".join(parts)
+        return "Capture tersimpan."
+
 
 class ProgressOSValidationErrorResponse(BaseModel):
     model_config = ConfigDict(extra="allow")

@@ -63,6 +63,7 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
     assert response.message == "Captured."
     assert response.record == {"id": 42, "title": "Follow up invoice client A"}
     assert response.record_path == "/tasks/42"
+    assert response.to_user_message() == "Captured.\nLokasi: /tasks/42"
     assert len(seen_requests) == 1
     request = seen_requests[0]
     assert request.headers["Authorization"] == "Bearer secret-token"
@@ -74,6 +75,29 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
     assert payload["date"] == "2026-06-21"
     assert "Original message: buat task follow up invoice client A besok" in payload["notes"]
     assert request.headers["Content-Type"] == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_submit_action_accepts_success_response_without_optional_fields() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["Idempotency-Key"] == "fixed-key"
+        return httpx.Response(200, json={})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_action_request())
+
+    assert response.message is None
+    assert response.record is None
+    assert response.record_path is None
+    assert response.to_user_message() == "Capture tersimpan."
 
 
 def test_build_quick_capture_request_maps_confirmed_task() -> None:

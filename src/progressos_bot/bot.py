@@ -141,5 +141,4 @@ class ProgressOSTelegramBot:
             await query.edit_message_text(f"Gagal mengirim ke ProgressOS: {exc}")
             return
 
-        message = response.message or "Action submitted"
-        await query.edit_message_text(f"ProgressOS: {message}")
+        await query.edit_message_text(f"ProgressOS: {response.to_user_message()}")
