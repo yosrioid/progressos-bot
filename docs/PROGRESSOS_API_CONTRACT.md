@@ -63,6 +63,9 @@ Current supported mapping:
 - `payload.duration_minutes` -> `duration_minutes`
 - `payload.project_name` -> `project_name`
 - `payload.date` -> `date`
+- `log_daily_progress` -> `type: "daily_progress"`
+- `log_daily_progress.payload.project_name` -> `project_name`
+- `log_daily_progress.payload.date` -> `date`
 
 Unsupported actions are not submitted.
 

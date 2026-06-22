@@ -64,6 +64,26 @@ def test_log_work_payload_is_valid() -> None:
     assert action.payload.title == "Implement Telegram webhook"
 
 
+def test_log_daily_progress_payload_is_valid() -> None:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "log_daily_progress",
+            "confidence": 0.9,
+            "language": "id",
+            "payload": {
+                "title": "Backend integration progress",
+                "description": "Quick-capture client and Telegram confirmation are done",
+                "date": "2026-06-22",
+                "project_name": "ProgressOS",
+            },
+            "user_confirmation_text": "Catat daily progress Backend integration progress?",
+        }
+    )
+
+    assert action.intent == "log_daily_progress"
+    assert action.payload.title == "Backend integration progress"
+
+
 def test_unknown_payload_fields_are_rejected() -> None:
     with pytest.raises(ValidationError):
         ParsedAction.model_validate(
@@ -133,5 +153,24 @@ def test_log_work_intent_rejects_task_payload_shape() -> None:
                     "priority": "high",
                 },
                 "user_confirmation_text": "Catat work log?",
+            }
+        )
+
+
+def test_log_daily_progress_intent_rejects_work_log_payload_shape() -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "log_daily_progress",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Implement Telegram webhook",
+                    "description": None,
+                    "date": "2026-06-22",
+                    "duration_minutes": 90,
+                    "project_name": "ProgressOS",
+                },
+                "user_confirmation_text": "Catat daily progress?",
             }
         )

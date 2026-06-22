@@ -109,6 +109,37 @@ Example:
 }
 ```
 
+## Supported Intent: log_daily_progress
+
+Use this when the user wants to record a daily progress summary.
+
+Required payload fields:
+
+- `title`
+
+Optional payload fields:
+
+- `description`
+- `date`
+- `project_name`
+
+Example:
+
+```json
+{
+  "intent": "log_daily_progress",
+  "confidence": 0.9,
+  "language": "id",
+  "payload": {
+    "title": "Backend integration progress",
+    "description": "Quick-capture client and Telegram confirmation are done",
+    "date": "2026-06-22",
+    "project_name": "ProgressOS"
+  },
+  "user_confirmation_text": "Catat daily progress \"Backend integration progress\"?"
+}
+```
+
 ## Supported Intent: unsupported
 
 Use this for unsupported commands, ambiguous messages, or messages that cannot be safely converted.

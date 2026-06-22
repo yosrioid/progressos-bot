@@ -36,6 +36,7 @@ Allowed `intent` values:
 - `create_task`
 - `create_blocker`
 - `log_work`
+- `log_daily_progress`
 - `unsupported`
 
 Allowed `priority` values:

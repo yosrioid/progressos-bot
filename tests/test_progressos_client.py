@@ -80,6 +80,29 @@ def make_work_log_action_request() -> ProgressOSActionRequest:
     )
 
 
+def make_daily_progress_action_request() -> ProgressOSActionRequest:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "log_daily_progress",
+            "confidence": 0.9,
+            "language": "id",
+            "payload": {
+                "title": "Backend integration progress",
+                "description": "Quick-capture client and Telegram confirmation are done",
+                "date": "2026-06-22",
+                "project_name": "ProgressOS",
+            },
+            "user_confirmation_text": "Catat daily progress Backend integration progress?",
+        }
+    )
+    return ProgressOSActionRequest(
+        source_user_id="123",
+        source_chat_id="456",
+        original_text="catat daily progress integrasi backend selesai",
+        parsed_action=action,
+    )
+
+
 @pytest.mark.asyncio
 async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() -> None:
     seen_requests: list[httpx.Request] = []
@@ -185,6 +208,38 @@ async def test_submit_action_posts_work_log_quick_capture_payload() -> None:
 
 
 @pytest.mark.asyncio
+async def test_submit_action_posts_daily_progress_quick_capture_payload() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(200, json={"message": "Daily progress captured."})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_daily_progress_action_request())
+
+    assert response.message == "Daily progress captured."
+    assert len(seen_requests) == 1
+    payload = json.loads(seen_requests[0].content)
+    assert payload["type"] == "daily_progress"
+    assert payload["title"] == "Backend integration progress"
+    assert payload["project_name"] == "ProgressOS"
+    assert payload["date"] == "2026-06-22"
+    assert "Original message: catat daily progress integrasi backend selesai" in payload["notes"]
+    assert "Description: Quick-capture client and Telegram confirmation are done" in payload[
+        "notes"
+    ]
+
+
+@pytest.mark.asyncio
 async def test_submit_action_accepts_success_response_without_optional_fields() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Idempotency-Key"] == "fixed-key"
@@ -260,6 +315,27 @@ def test_build_quick_capture_request_maps_confirmed_work_log() -> None:
     assert quick_capture.duration_minutes == 90
     assert quick_capture.notes is not None
     assert "Description: Finished webhook server draft" in quick_capture.notes
+
+
+def test_build_quick_capture_request_maps_confirmed_daily_progress() -> None:
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+    )
+
+    quick_capture = client.build_quick_capture_request(make_daily_progress_action_request())
+
+    assert quick_capture.type == "daily_progress"
+    assert quick_capture.title == "Backend integration progress"
+    assert quick_capture.project_name == "ProgressOS"
+    assert quick_capture.date is not None
+    assert quick_capture.duration_minutes is None
+    assert quick_capture.notes is not None
+    assert "Description: Quick-capture client and Telegram confirmation are done" in (
+        quick_capture.notes
+    )
 
 
 @pytest.mark.asyncio
