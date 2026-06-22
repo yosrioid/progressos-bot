@@ -13,6 +13,7 @@ from telegram.ext import (
 
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.core.capture_flow import CaptureFlow
+from progressos_bot.core.identity import CaptureIdentityService
 from progressos_bot.identity import (
     ChannelUserIdentity,
     TelegramAllowlist,
@@ -46,6 +47,10 @@ class ProgressOSTelegramBot:
         self._progressos = progressos
         self._authorizer = authorizer
         self._user_map = user_map
+        self._identity = CaptureIdentityService(
+            authorizer=authorizer,
+            progressos_user_resolver=user_map,
+        )
         pending = pending_store or InMemoryPendingActionStore(
             ttl_seconds=confirmation_ttl_seconds
         )
@@ -290,11 +295,6 @@ class ProgressOSTelegramBot:
             channel="telegram",
             channel_user_id=str(update.effective_user.id),
         )
-        try:
-            self._authorizer.require_authorized(identity)
-        except UserAuthorizationError as exc:
-            await query.edit_message_text(str(exc))
-            return
 
         user_key = str(update.effective_user.id)
 
@@ -303,8 +303,8 @@ class ProgressOSTelegramBot:
             await query.edit_message_text("Draft dibatalkan.")
             return
         try:
-            progressos_user_id = self._user_map.resolve(identity)
-        except UserMappingError as exc:
+            resolved_identity = self._identity.resolve_for_capture(identity)
+        except (UserAuthorizationError, UserMappingError) as exc:
             await query.edit_message_text(str(exc))
             return
 
@@ -313,7 +313,7 @@ class ProgressOSTelegramBot:
                 user_key=user_key,
                 source_user_id=str(update.effective_user.id),
                 source_chat_id=str(update.effective_chat.id),
-                progressos_user_id=progressos_user_id,
+                progressos_user_id=resolved_identity.progressos_user_id,
             )
         except ProgressOSValidationError as exc:
             logger.info("ProgressOS rejected action validation")
@@ -350,7 +350,7 @@ class ProgressOSTelegramBot:
             channel_user_id=str(update.effective_user.id),
         )
         try:
-            self._authorizer.require_authorized(identity)
+            self._identity.require_authorized(identity)
         except UserAuthorizationError as exc:
             await update.message.reply_text(str(exc))
             return False
@@ -367,8 +367,8 @@ class ProgressOSTelegramBot:
             channel_user_id=str(update.effective_user.id),
         )
         try:
-            self._user_map.resolve(identity)
-        except UserMappingError as exc:
+            self._identity.resolve_for_capture(identity)
+        except (UserAuthorizationError, UserMappingError) as exc:
             await update.message.reply_text(str(exc))
             return False
         return True

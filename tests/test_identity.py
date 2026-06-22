@@ -16,6 +16,13 @@ def test_telegram_allowlist_authorizes_configured_user() -> None:
     assert allowlist.is_authorized(identity)
 
 
+def test_channel_user_identity_accepts_non_telegram_channel() -> None:
+    identity = ChannelUserIdentity(channel="discord", channel_user_id="abc")
+
+    assert identity.channel == "discord"
+    assert identity.channel_user_id == "abc"
+
+
 def test_telegram_allowlist_rejects_unknown_user() -> None:
     allowlist = TelegramAllowlist.from_csv("123")
     identity = ChannelUserIdentity(channel="telegram", channel_user_id="999")
