@@ -2,6 +2,7 @@ import pytest
 
 from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.core.admin import AdminInfoService, ConfigurationDiagnostics, VersionInfo
+from progressos_bot.core.rate_limit import RateLimitResult
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 
 
@@ -24,11 +25,22 @@ class FakeUpdate:
         self.effective_user = FakeUser(user_id)
 
 
+class FakeRateLimiter:
+    def __init__(self, result: RateLimitResult) -> None:
+        self.result = result
+        self.checked_keys: list[str] = []
+
+    def check(self, key: str) -> RateLimitResult:
+        self.checked_keys.append(key)
+        return self.result
+
+
 def make_bot(
     *,
     allowed: str = "123",
     revoked: str = "",
     mappings: str = "123:77",
+    rate_limiter: FakeRateLimiter | None = None,
 ) -> ProgressOSTelegramBot:
     return ProgressOSTelegramBot(
         token="token",
@@ -55,6 +67,7 @@ def make_bot(
                 webhook_secret_configured=False,
             ),
         ),
+        rate_limiter=rate_limiter,
     )
 
 
@@ -83,3 +96,15 @@ async def test_authorize_mapped_message_rejects_revoked_user_before_mapping() ->
 
     assert not await bot._authorize_mapped_message(update)
     assert update.message.replies == ["Akses user ini sudah dicabut."]
+
+
+@pytest.mark.asyncio
+async def test_handle_message_rejects_rate_limited_user_before_parsing() -> None:
+    limiter = FakeRateLimiter(RateLimitResult(allowed=False, retry_after_seconds=30))
+    bot = make_bot(rate_limiter=limiter)
+    update = FakeUpdate(123)
+
+    await bot._handle_message(update, object())
+
+    assert limiter.checked_keys == ["123"]
+    assert update.message.replies == ["Terlalu banyak request. Coba lagi dalam 30 detik."]

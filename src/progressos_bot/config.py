@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     pending_store_path: str = ""
     retry_queue_path: str = ""
     retry_dead_letter_after_attempts: int = Field(default=5, gt=0)
+    rate_limit_max_requests: int = Field(default=20, gt=0)
+    rate_limit_window_seconds: int = Field(default=60, gt=0)
 
     app_env: Literal["local", "staging", "production"] = "local"
     log_level: str = "INFO"

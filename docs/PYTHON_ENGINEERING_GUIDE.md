@@ -60,6 +60,7 @@ progressos-bot/
         admin.py
         capture_flow.py
         identity.py
+        rate_limit.py
         read_commands.py
       observability/
         correlation.py
