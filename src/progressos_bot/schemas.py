@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from progressos_bot.channels.base import CHANNEL_NAME_PATTERN
+
 Intent = Literal[
     "create_task",
     "create_blocker",
@@ -136,7 +138,7 @@ class ParsedAction(BaseModel):
 class ProgressOSActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    source: Literal["telegram"] = "telegram"
+    source: str = Field(default="telegram", pattern=CHANNEL_NAME_PATTERN)
     source_user_id: str = Field(min_length=1)
     source_chat_id: str = Field(min_length=1)
     progressos_user_id: str | None = Field(default=None, min_length=1)

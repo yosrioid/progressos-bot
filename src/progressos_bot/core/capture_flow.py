@@ -64,6 +64,7 @@ class CaptureFlow:
         self,
         *,
         user_key: str,
+        source: str = "telegram",
         source_user_id: str,
         source_chat_id: str,
         progressos_user_id: str | None,
@@ -76,6 +77,7 @@ class CaptureFlow:
             )
 
         request = ProgressOSActionRequest(
+            source=source,
             source_user_id=source_user_id,
             source_chat_id=source_chat_id,
             progressos_user_id=progressos_user_id,
