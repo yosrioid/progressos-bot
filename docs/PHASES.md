@@ -340,6 +340,7 @@ Required abstractions:
 - `ConfirmationDecision` - implemented.
 - `ChannelAdapter` - implemented.
 - `CaptureFlow` core service - implemented for capture writes.
+- `CaptureIdentityService` core service - implemented for authorization and user mapping.
 
 Rules:
 

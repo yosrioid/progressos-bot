@@ -1,13 +1,15 @@
 from collections.abc import Iterable
-from typing import Literal
+from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from progressos_bot.channels.base import CHANNEL_NAME_PATTERN
 
 
 class ChannelUserIdentity(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    channel: Literal["telegram"]
+    channel: str = Field(pattern=CHANNEL_NAME_PATTERN)
     channel_user_id: str = Field(min_length=1)
 
 
@@ -17,6 +19,14 @@ class UserAuthorizationError(RuntimeError):
 
 class UserMappingError(RuntimeError):
     pass
+
+
+class UserAuthorizer(Protocol):
+    def require_authorized(self, identity: ChannelUserIdentity) -> None: ...
+
+
+class ProgressOSUserResolver(Protocol):
+    def resolve(self, identity: ChannelUserIdentity) -> str: ...
 
 
 class TelegramAllowlist:
