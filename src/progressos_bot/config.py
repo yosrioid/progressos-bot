@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     confirmation_ttl_seconds: int = Field(default=900, gt=0)
     pending_store_path: str = ""
     retry_queue_path: str = ""
+    retry_dead_letter_after_attempts: int = Field(default=5, gt=0)
 
     app_env: Literal["local", "staging", "production"] = "local"
     log_level: str = "INFO"

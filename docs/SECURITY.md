@@ -41,6 +41,10 @@ When `RETRY_QUEUE_PATH` is configured, exhausted transient writes are stored in 
 SQLite queue with the quick-capture payload and original idempotency key. The queue must
 not store bearer tokens or raw request headers.
 
+Queued retry submissions are moved to dead-letter storage after
+`RETRY_DEAD_LETTER_AFTER_ATTEMPTS` so repeated failures remain visible without retrying
+forever.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
