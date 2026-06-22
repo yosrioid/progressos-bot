@@ -370,7 +370,7 @@ Features:
   implemented as core counters.
 - Admin command for version/build info - implemented with `/version`.
 - Safe diagnostic command for configuration status - implemented with `/diagnostics`.
-- Error reporting integration.
+- Error reporting integration - implemented with redaction-safe reporter interfaces.
 
 Security rules:
 
@@ -382,7 +382,7 @@ Acceptance criteria:
 
 - Operators can identify failing dependency: Telegram, Groq, or ProgressOS.
 - A failed action can be traced by correlation ID.
-- Secret redaction has tests.
+- Secret redaction has tests - implemented.
 
 ## Phase 10: Product Hardening
 
