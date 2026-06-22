@@ -264,7 +264,7 @@ Acceptance criteria:
 
 ## Phase 6: Persistence And Operational Reliability
 
-Status: in progress.
+Status: complete.
 
 Goal: make pending confirmations and delivery behavior survive bot restarts.
 
@@ -275,7 +275,7 @@ Features:
 - Rehydration after restart - implemented for SQLite pending confirmations.
 - Idempotency-aware retry queue - implemented with optional SQLite `RETRY_QUEUE_PATH`.
 - Dead-letter handling for repeated failures - implemented through `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
-- Structured operational logs.
+- Structured operational logs - implemented through `LOG_FORMAT=json`.
 
 Recommended storage:
 
