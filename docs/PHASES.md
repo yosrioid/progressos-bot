@@ -320,7 +320,7 @@ Acceptance criteria:
 
 ## Phase 8: Multi-Channel Core
 
-Status: in progress.
+Status: complete.
 
 Goal: add new channel adapters without duplicating parser, validation, or ProgressOS client
 logic.
