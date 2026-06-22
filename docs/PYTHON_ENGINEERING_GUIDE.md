@@ -54,6 +54,8 @@ progressos-bot/
         prompts.py
       channels/
         base.py
+      core/
+        capture_flow.py
       bot.py
       config.py
       logging.py
