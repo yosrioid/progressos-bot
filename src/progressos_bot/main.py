@@ -11,7 +11,7 @@ from progressos_bot.retry_queue import SQLiteRetryQueue
 
 def main() -> None:
     settings = get_settings()
-    configure_logging(settings.log_level)
+    configure_logging(settings.log_level, log_format=settings.log_format)
 
     groq = GroqParserClient(api_key=settings.groq_api_key, model=settings.groq_model)
     parser = MessageParser(groq=groq, min_confidence=settings.ai_min_confidence)

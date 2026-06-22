@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     app_env: Literal["local", "staging", "production"] = "local"
     log_level: str = "INFO"
+    log_format: Literal["text", "json"] = "text"
     ai_min_confidence: float = Field(default=0.75, ge=0, le=1)
     http_timeout_seconds: float = Field(default=20, gt=0)
 

@@ -79,6 +79,7 @@ Reject the AI result when:
 12. Pending confirmations persist across restarts only when `PENDING_STORE_PATH` is configured.
 13. Exhausted transient write failures are queued with the same idempotency key only when `RETRY_QUEUE_PATH` is configured.
 14. Queued retry submissions move to dead-letter storage after `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
+15. Use `LOG_FORMAT=json` for structured operational logs in deployments that need machine-readable logs.
 
 ## ProgressOS Integration Rules
 

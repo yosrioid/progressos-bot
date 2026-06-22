@@ -4,22 +4,23 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 6: Persistence And Operational Reliability.
+Phase 7: Webhook Deployment.
 
 Current focus:
 
-- Make pending confirmations safer and restart-aware.
-- Expire stale confirmation drafts before submit.
-- Persist pending confirmations when configured.
-- Queue exhausted transient writes with their original idempotency key.
-- Move repeated retry failures to dead-letter storage.
-- CI-gated Phase 6 slices.
+- Add production-friendly webhook serving alongside local polling.
+- Expose health and readiness checks.
+- Keep Telegram webhook verification explicit.
+- Preserve polling for local development.
+- CI-gated Phase 7 slices.
 
 ## Next Milestones
 
-1. Add structured operational logs.
-2. Move identity mapping server-side when ProgressOS exposes it.
-3. Extract channel-neutral core services before adding another channel.
+1. Add webhook server entrypoint.
+2. Add health and readiness endpoints.
+3. Add graceful shutdown notes and deployment config.
+4. Move identity mapping server-side when ProgressOS exposes it.
+5. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 
