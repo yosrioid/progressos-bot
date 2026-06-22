@@ -52,6 +52,8 @@ progressos-bot/
         groq_client.py
         parser.py
         prompts.py
+      channels/
+        base.py
       bot.py
       config.py
       logging.py
