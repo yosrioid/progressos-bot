@@ -138,3 +138,15 @@ Accept: application/json
 Telegram `/search` requires a non-empty query and rejects queries longer than 120
 characters before calling ProgressOS. The bot formats results from `results`, `items`, or
 a list-shaped `data` field. Empty responses show `Tidak ada hasil pencarian.`.
+
+## Read-Only Overdue Tasks
+
+```http
+GET /api/v1/tasks/overdue
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+The bot formats overdue tasks from `tasks`, `items`, or a list-shaped `data` field. Empty
+responses show `Tidak ada task overdue.`. Unauthorized responses are handled with a safe
+generic message without exposing raw server details.

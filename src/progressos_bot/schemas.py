@@ -335,3 +335,60 @@ class ProgressOSSearchResponse(BaseModel):
         if len(self.results) > 10:
             lines.append(f"...dan {len(self.results) - 10} hasil lain.")
         return "\n".join([header, *lines])
+
+
+class ProgressOSOverdueTask(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str | None = None
+    name: str | None = None
+    due_date: Date | None = None
+    project_name: str | None = None
+    record_path: str | None = None
+
+    def to_user_line(self, index: int) -> str:
+        label = self.title or self.name or "Task overdue"
+        details = []
+        if self.project_name:
+            details.append(self.project_name)
+        if self.due_date:
+            details.append(self.due_date.isoformat())
+        suffix = f" ({', '.join(details)})" if details else ""
+        path = f" - {self.record_path}" if self.record_path else ""
+        return f"{index}. {label}{suffix}{path}"
+
+
+class ProgressOSOverdueResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    tasks: list[ProgressOSOverdueTask] = Field(default_factory=list)
+    count: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_tasks(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "tasks" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "tasks": raw_data}
+
+        items = data.get("items")
+        if isinstance(items, list):
+            return {**data, "tasks": items}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.tasks:
+            if self.count:
+                return self.message or f"Ada {self.count} task overdue."
+            return self.message or "Tidak ada task overdue."
+
+        header = self.message or "Task overdue:"
+        lines = [task.to_user_line(index) for index, task in enumerate(self.tasks[:10], start=1)]
+        if len(self.tasks) > 10:
+            lines.append(f"...dan {len(self.tasks) - 10} task lain.")
+        return "\n".join([header, *lines])
