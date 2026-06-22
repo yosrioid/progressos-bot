@@ -57,6 +57,8 @@ Current supported mapping:
 - `payload.title` -> `title`
 - `payload.due_date` -> `date`
 - `original_text`, source channel, source user, source chat, and optional description -> `notes`
+- `create_blocker` -> `type: "blocker"`
+- `payload.severity` -> `notes`
 
 Unsupported actions are not submitted.
 

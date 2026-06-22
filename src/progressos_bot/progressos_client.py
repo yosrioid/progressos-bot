@@ -4,6 +4,7 @@ from uuid import uuid4
 import httpx
 
 from progressos_bot.schemas import (
+    CreateBlockerPayload,
     CreateTaskPayload,
     ProgressOSActionRequest,
     ProgressOSActionResponse,
@@ -99,21 +100,36 @@ class ProgressOSClient:
         self, request: ProgressOSActionRequest
     ) -> ProgressOSQuickCaptureRequest:
         action = request.parsed_action
-        if action.intent != "create_task" or not isinstance(action.payload, CreateTaskPayload):
-            raise ProgressOSClientError("Action belum didukung oleh quick capture.")
+        if action.intent == "create_task" and isinstance(action.payload, CreateTaskPayload):
+            notes = self._build_notes(request, description=action.payload.description)
+            return ProgressOSQuickCaptureRequest(
+                type="task",
+                title=action.payload.title,
+                notes=notes,
+                date=action.payload.due_date,
+            )
 
-        notes = self._build_task_notes(request)
-        return ProgressOSQuickCaptureRequest(
-            type="task",
-            title=action.payload.title,
-            notes=notes,
-            date=action.payload.due_date,
-        )
+        if action.intent == "create_blocker" and isinstance(action.payload, CreateBlockerPayload):
+            notes = self._build_notes(
+                request,
+                description=action.payload.description,
+                extra_parts=[f"Severity: {action.payload.severity}"],
+            )
+            return ProgressOSQuickCaptureRequest(
+                type="blocker",
+                title=action.payload.title,
+                notes=notes,
+            )
+
+        raise ProgressOSClientError("Action belum didukung oleh quick capture.")
 
     @staticmethod
-    def _build_task_notes(request: ProgressOSActionRequest) -> str:
-        payload = request.parsed_action.payload
-        description = payload.description if isinstance(payload, CreateTaskPayload) else None
+    def _build_notes(
+        request: ProgressOSActionRequest,
+        *,
+        description: str | None,
+        extra_parts: list[str] | None = None,
+    ) -> str:
         parts = [
             f"Source: {request.source}",
             f"Source user: {request.source_user_id}",
@@ -122,6 +138,8 @@ class ProgressOSClient:
         ]
         if description:
             parts.append(f"Description: {description}")
+        if extra_parts:
+            parts.extend(extra_parts)
         return "\n".join(parts)
 
     @staticmethod

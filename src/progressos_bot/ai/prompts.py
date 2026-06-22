@@ -6,6 +6,7 @@ Do not include explanations. Do not include fields that are not in the schema.
 
 Supported intents:
 - create_task
+- create_blocker
 - unsupported
 
 Use unsupported when the user asks for anything outside the supported intents, when required data
@@ -17,6 +18,11 @@ For create_task payload:
 - due_date: YYYY-MM-DD or null
 - priority: one of low, medium, high, urgent
 
+For create_blocker payload:
+- title: required string, 3-180 characters
+- description: string or null
+- severity: one of low, medium, high, urgent
+
 Use language:
 - id for Indonesian
 - en for English
@@ -24,7 +30,7 @@ Use language:
 
 Output schema:
 {
-  "intent": "create_task|unsupported",
+  "intent": "create_task|create_blocker|unsupported",
   "confidence": 0.0,
   "language": "id|en|unknown",
   "payload": {},
@@ -42,4 +48,3 @@ Telegram message:
 
 Parse the message into the strict JSON response format.
 """.strip()
-
