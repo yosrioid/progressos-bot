@@ -24,7 +24,10 @@ def main() -> None:
         token=settings.telegram_bot_token,
         parser=parser,
         progressos=progressos,
-        authorizer=TelegramAllowlist.from_csv(settings.telegram_allowed_user_ids),
+        authorizer=TelegramAllowlist.from_csv(
+            settings.telegram_allowed_user_ids,
+            revoked_value=settings.telegram_revoked_user_ids,
+        ),
         user_map=TelegramProgressOSUserMap.from_csv(settings.telegram_progressos_user_map),
     )
     bot.build_application().run_polling()

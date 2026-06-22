@@ -242,7 +242,7 @@ Features:
 - Mapping from Telegram user ID to ProgressOS user ID - implemented through `TELEGRAM_PROGRESSOS_USER_MAP`.
 - Authorization check before showing or submitting actions - implemented for Telegram allowlist.
 - Admin-only allowlist bootstrap - implemented through `TELEGRAM_ALLOWED_USER_IDS`.
-- Revocation flow.
+- Revocation flow - implemented through `TELEGRAM_REVOKED_USER_IDS`.
 - Audit metadata on submitted actions.
 
 Security requirements:

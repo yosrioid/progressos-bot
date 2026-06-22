@@ -16,11 +16,10 @@ Current focus:
 
 ## Next Milestones
 
-1. Add revocation flow.
-2. Add audit metadata on submitted actions.
-3. Harden per-user identity checks for read commands.
-4. Move identity mapping server-side when ProgressOS exposes it.
-5. Extract channel-neutral core services before adding another channel.
+1. Add audit metadata on submitted actions.
+2. Harden per-user identity checks for read commands.
+3. Move identity mapping server-side when ProgressOS exposes it.
+4. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 
