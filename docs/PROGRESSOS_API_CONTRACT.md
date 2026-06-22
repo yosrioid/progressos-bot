@@ -114,3 +114,15 @@ Accept: application/json
 The bot formats a concise Telegram response from `items` or a list-shaped `data` field.
 Empty responses show `Tidak ada item standup.`. Unauthorized responses are handled with a
 safe generic message without exposing raw server details.
+
+## Read-Only Dashboard
+
+```http
+GET /api/v1/dashboard
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+The bot formats a concise Telegram response from `metrics`, `items`, or a list-shaped
+`data` field. Empty responses show `Tidak ada ringkasan dashboard.`. Unauthorized
+responses are handled with a safe generic message without exposing raw server details.
