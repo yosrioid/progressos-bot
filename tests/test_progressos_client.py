@@ -686,3 +686,99 @@ async def test_get_dashboard_raises_transient_error_for_server_error() -> None:
 
     with pytest.raises(ProgressOSTransientError):
         await client.get_dashboard()
+
+
+@pytest.mark.asyncio
+async def test_search_returns_concise_user_message() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Hasil untuk webhook",
+                "results": [
+                    {
+                        "type": "task",
+                        "title": "Implement Telegram webhook",
+                        "excerpt": "Webhook server draft",
+                        "record_path": "/tasks/42",
+                    }
+                ],
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.search("webhook")
+
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.method == "GET"
+    assert request.url.path == "/api/v1/search"
+    assert request.url.params["q"] == "webhook"
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert response.to_user_message() == (
+        "Hasil untuk webhook\n"
+        "1. [task] Implement Telegram webhook: Webhook server draft - /tasks/42"
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_handles_empty_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"results": []})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.search("missing")
+
+    assert response.results == []
+    assert response.to_user_message() == "Tidak ada hasil pencarian."
+
+
+@pytest.mark.asyncio
+async def test_search_rejects_unauthorized_response_safely() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"message": "Forbidden details"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSClientError, match="menolak akses pencarian"):
+        await client.search("webhook")
+
+
+@pytest.mark.asyncio
+async def test_search_raises_transient_error_for_server_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(502, json={"message": "Bad gateway"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.search("webhook")

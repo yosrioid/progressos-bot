@@ -282,3 +282,56 @@ class ProgressOSDashboardResponse(BaseModel):
         if len(self.items) > 10:
             lines.append(f"...dan {len(self.items) - 10} metrik lain.")
         return "\n".join([header, *lines])
+
+
+class ProgressOSSearchResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str | None = None
+    name: str | None = None
+    type: str | None = None
+    excerpt: str | None = None
+    record_path: str | None = None
+
+    def to_user_line(self, index: int) -> str:
+        label = self.title or self.name or "Hasil pencarian"
+        prefix = f"[{self.type}] " if self.type else ""
+        path = f" - {self.record_path}" if self.record_path else ""
+        if self.excerpt:
+            return f"{index}. {prefix}{label}: {self.excerpt}{path}"
+        return f"{index}. {prefix}{label}{path}"
+
+
+class ProgressOSSearchResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    results: list[ProgressOSSearchResult] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_results(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "results" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "results": raw_data}
+
+        items = data.get("items")
+        if isinstance(items, list):
+            return {**data, "results": items}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.results:
+            return self.message or "Tidak ada hasil pencarian."
+
+        header = self.message or "Hasil pencarian:"
+        lines = [
+            result.to_user_line(index) for index, result in enumerate(self.results[:10], start=1)
+        ]
+        if len(self.results) > 10:
+            lines.append(f"...dan {len(self.results) - 10} hasil lain.")
+        return "\n".join([header, *lines])
