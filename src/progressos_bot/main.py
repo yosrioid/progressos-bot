@@ -4,6 +4,7 @@ from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.config import get_settings
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
+from progressos_bot.pending import SQLitePendingActionStore
 from progressos_bot.progressos_client import ProgressOSClient
 
 
@@ -19,6 +20,12 @@ def main() -> None:
         endpoint=settings.progressos_assistant_endpoint,
         timeout_seconds=settings.http_timeout_seconds,
     )
+    pending_store = None
+    if settings.pending_store_path:
+        pending_store = SQLitePendingActionStore(
+            path=settings.pending_store_path,
+            ttl_seconds=settings.confirmation_ttl_seconds,
+        )
 
     bot = ProgressOSTelegramBot(
         token=settings.telegram_bot_token,
@@ -30,6 +37,7 @@ def main() -> None:
         ),
         user_map=TelegramProgressOSUserMap.from_csv(settings.telegram_progressos_user_map),
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
+        pending_store=pending_store,
     )
     bot.build_application().run_polling()
 

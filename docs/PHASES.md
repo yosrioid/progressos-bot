@@ -270,9 +270,9 @@ Goal: make pending confirmations and delivery behavior survive bot restarts.
 
 Features:
 
-- Persistent pending action store.
+- Persistent pending action store - implemented with optional SQLite `PENDING_STORE_PATH`.
 - Confirmation expiry - implemented through `CONFIRMATION_TTL_SECONDS`.
-- Rehydration after restart.
+- Rehydration after restart - implemented for SQLite pending confirmations.
 - Idempotency-aware retry queue.
 - Dead-letter handling for repeated failures.
 - Structured operational logs.

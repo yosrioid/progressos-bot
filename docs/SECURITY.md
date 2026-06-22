@@ -33,6 +33,10 @@ tokens, raw request headers, or `.env` values.
 Pending confirmation drafts expire after `CONFIRMATION_TTL_SECONDS`. Expired drafts are
 dropped instead of being submitted to ProgressOS.
 
+When `PENDING_STORE_PATH` is configured, pending drafts are stored in a local SQLite file
+so confirmation callbacks can survive bot restarts. Treat that file as runtime data and do
+not commit it.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
