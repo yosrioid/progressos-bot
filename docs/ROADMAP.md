@@ -4,20 +4,20 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 1: Telegram Capture MVP.
+Phase 2: ProgressOS Quick Capture Completion.
 
 Current focus:
 
-- Telegram polling adapter.
-- Groq parser.
-- Strict Pydantic validation.
-- User confirmation before ProgressOS writes.
-- CI-gated foundation.
+- Quick-capture mapping from confirmed bot actions.
+- Idempotency keys and retry-safe HTTP behavior.
+- Safe validation, transient, and client error messages.
+- Success responses that surface useful ProgressOS paths.
+- CI-gated Phase 2 slices.
 
 ## Next Milestones
 
-1. Complete quick-capture mapping for all supported ProgressOS capture types.
-2. Add idempotency keys and retry-safe HTTP behavior.
+1. Finish Phase 2 quick-capture response and error coverage.
+2. Add expanded capture intents for blocker, work log, daily progress, and learning.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.

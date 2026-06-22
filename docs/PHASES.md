@@ -156,6 +156,8 @@ Current implementation slice:
 - The client retries timeout, network, and 5xx failures with the same idempotency key.
 - Laravel `422` validation responses are parsed into a typed validation error.
 - Telegram shows safe validation/transient/client error messages.
+- Telegram shows the ProgressOS `record_path` when Laravel returns one.
+- Success responses without optional fields still produce a safe user-facing message.
 
 ## Phase 3: Expanded Capture Intents
 
