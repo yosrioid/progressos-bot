@@ -138,6 +138,7 @@ class ProgressOSActionRequest(BaseModel):
     source: Literal["telegram"] = "telegram"
     source_user_id: str = Field(min_length=1)
     source_chat_id: str = Field(min_length=1)
+    progressos_user_id: str | None = Field(default=None, min_length=1)
     original_text: str = Field(min_length=1, max_length=5000)
     parsed_action: ParsedAction
 

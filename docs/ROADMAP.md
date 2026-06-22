@@ -16,10 +16,10 @@ Current focus:
 
 ## Next Milestones
 
-1. Map Telegram user IDs to ProgressOS user IDs.
-2. Add revocation flow.
-3. Add audit metadata on submitted actions.
-4. Harden per-user identity checks for read commands.
+1. Add revocation flow.
+2. Add audit metadata on submitted actions.
+3. Harden per-user identity checks for read commands.
+4. Move identity mapping server-side when ProgressOS exposes it.
 5. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule

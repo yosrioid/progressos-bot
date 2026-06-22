@@ -30,6 +30,7 @@ def make_action_request() -> ProgressOSActionRequest:
     return ProgressOSActionRequest(
         source_user_id="123",
         source_chat_id="456",
+        progressos_user_id="77",
         original_text="buat task follow up invoice client A besok",
         parsed_action=action,
     )
@@ -167,6 +168,7 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
     assert payload["title"] == "Follow up invoice client A"
     assert payload["date"] == "2026-06-21"
     assert "Original message: buat task follow up invoice client A besok" in payload["notes"]
+    assert "ProgressOS user: 77" in payload["notes"]
     assert request.headers["Content-Type"] == "application/json"
 
 

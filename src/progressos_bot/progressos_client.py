@@ -343,6 +343,8 @@ class ProgressOSClient:
             f"Source chat: {request.source_chat_id}",
             f"Original message: {request.original_text}",
         ]
+        if request.progressos_user_id:
+            parts.append(f"ProgressOS user: {request.progressos_user_id}")
         if description:
             parts.append(f"Description: {description}")
         if extra_parts:

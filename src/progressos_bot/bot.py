@@ -12,7 +12,13 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
-from progressos_bot.identity import ChannelUserIdentity, TelegramAllowlist, UserAuthorizationError
+from progressos_bot.identity import (
+    ChannelUserIdentity,
+    TelegramAllowlist,
+    TelegramProgressOSUserMap,
+    UserAuthorizationError,
+    UserMappingError,
+)
 from progressos_bot.progressos_client import (
     ProgressOSClient,
     ProgressOSClientError,
@@ -33,11 +39,13 @@ class ProgressOSTelegramBot:
         parser: MessageParser,
         progressos: ProgressOSClient,
         authorizer: TelegramAllowlist,
+        user_map: TelegramProgressOSUserMap,
     ) -> None:
         self._token = token
         self._parser = parser
         self._progressos = progressos
         self._authorizer = authorizer
+        self._user_map = user_map
         self._pending: PendingActions = {}
 
     def build_application(self) -> Any:
@@ -271,13 +279,12 @@ class ProgressOSTelegramBot:
             return
 
         await query.answer()
+        identity = ChannelUserIdentity(
+            channel="telegram",
+            channel_user_id=str(update.effective_user.id),
+        )
         try:
-            self._authorizer.require_authorized(
-                ChannelUserIdentity(
-                    channel="telegram",
-                    channel_user_id=str(update.effective_user.id),
-                )
-            )
+            self._authorizer.require_authorized(identity)
         except UserAuthorizationError as exc:
             await query.edit_message_text(str(exc))
             return
@@ -295,9 +302,16 @@ class ProgressOSTelegramBot:
             return
 
         original_text, action = pending
+        try:
+            progressos_user_id = self._user_map.resolve(identity)
+        except UserMappingError as exc:
+            await query.edit_message_text(str(exc))
+            return
+
         request = ProgressOSActionRequest(
             source_user_id=str(update.effective_user.id),
             source_chat_id=str(update.effective_chat.id),
+            progressos_user_id=progressos_user_id,
             original_text=original_text,
             parsed_action=action,
         )

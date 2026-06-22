@@ -15,6 +15,10 @@ class UserAuthorizationError(RuntimeError):
     pass
 
 
+class UserMappingError(RuntimeError):
+    pass
+
+
 class TelegramAllowlist:
     def __init__(self, allowed_user_ids: Iterable[str]) -> None:
         self._allowed_user_ids = {
@@ -31,3 +35,29 @@ class TelegramAllowlist:
     def require_authorized(self, identity: ChannelUserIdentity) -> None:
         if not self.is_authorized(identity):
             raise UserAuthorizationError("User belum diizinkan memakai bot ini.")
+
+
+class TelegramProgressOSUserMap:
+    def __init__(self, mappings: dict[str, str]) -> None:
+        self._mappings = mappings
+
+    @classmethod
+    def from_csv(cls, value: str) -> "TelegramProgressOSUserMap":
+        mappings: dict[str, str] = {}
+        for entry in value.split(","):
+            stripped = entry.strip()
+            if not stripped:
+                continue
+            telegram_user_id, separator, progressos_user_id = stripped.partition(":")
+            if not separator or not telegram_user_id.strip() or not progressos_user_id.strip():
+                raise ValueError("Invalid TELEGRAM_PROGRESSOS_USER_MAP entry.")
+            mappings[telegram_user_id.strip()] = progressos_user_id.strip()
+        return cls(mappings)
+
+    def resolve(self, identity: ChannelUserIdentity) -> str:
+        if identity.channel != "telegram":
+            raise UserMappingError("Channel belum didukung.")
+        progressos_user_id = self._mappings.get(identity.channel_user_id)
+        if progressos_user_id is None:
+            raise UserMappingError("User belum terhubung ke ProgressOS.")
+        return progressos_user_id
