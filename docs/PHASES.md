@@ -274,7 +274,7 @@ Features:
 - Confirmation expiry - implemented through `CONFIRMATION_TTL_SECONDS`.
 - Rehydration after restart - implemented for SQLite pending confirmations.
 - Idempotency-aware retry queue - implemented with optional SQLite `RETRY_QUEUE_PATH`.
-- Dead-letter handling for repeated failures.
+- Dead-letter handling for repeated failures - implemented through `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
 - Structured operational logs.
 
 Recommended storage:

@@ -17,7 +17,10 @@ def main() -> None:
     parser = MessageParser(groq=groq, min_confidence=settings.ai_min_confidence)
     retry_queue = None
     if settings.retry_queue_path:
-        retry_queue = SQLiteRetryQueue(path=settings.retry_queue_path)
+        retry_queue = SQLiteRetryQueue(
+            path=settings.retry_queue_path,
+            dead_letter_after_attempts=settings.retry_dead_letter_after_attempts,
+        )
     progressos = ProgressOSClient(
         base_url=str(settings.progressos_base_url),
         token=settings.progressos_api_token,

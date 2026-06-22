@@ -12,14 +12,14 @@ Current focus:
 - Expire stale confirmation drafts before submit.
 - Persist pending confirmations when configured.
 - Queue exhausted transient writes with their original idempotency key.
+- Move repeated retry failures to dead-letter storage.
 - CI-gated Phase 6 slices.
 
 ## Next Milestones
 
-1. Add dead-letter handling for repeated failures.
-2. Add structured operational logs.
-3. Move identity mapping server-side when ProgressOS exposes it.
-4. Extract channel-neutral core services before adding another channel.
+1. Add structured operational logs.
+2. Move identity mapping server-side when ProgressOS exposes it.
+3. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 

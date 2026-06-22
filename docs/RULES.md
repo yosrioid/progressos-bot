@@ -78,6 +78,7 @@ Reject the AI result when:
 11. Pending confirmations expire after `CONFIRMATION_TTL_SECONDS`.
 12. Pending confirmations persist across restarts only when `PENDING_STORE_PATH` is configured.
 13. Exhausted transient write failures are queued with the same idempotency key only when `RETRY_QUEUE_PATH` is configured.
+14. Queued retry submissions move to dead-letter storage after `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
 
 ## ProgressOS Integration Rules
 
