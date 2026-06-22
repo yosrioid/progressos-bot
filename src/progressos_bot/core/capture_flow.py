@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 from progressos_bot.observability.correlation import CorrelationIdFactory
+from progressos_bot.observability.metrics import MetricsSink, NoopMetricsSink
 from progressos_bot.pending import PendingActionStore
 from progressos_bot.schemas import (
     ParsedAction,
@@ -43,22 +44,27 @@ class CaptureFlow:
         progressos: ProgressOSActionSubmitter,
         pending: PendingActionStore,
         correlation_id_factory: Callable[[], str] | None = None,
+        metrics: MetricsSink | None = None,
     ) -> None:
         self._parser = parser
         self._progressos = progressos
         self._pending = pending
         self._new_correlation_id = correlation_id_factory or CorrelationIdFactory().new
+        self._metrics = metrics or NoopMetricsSink()
 
     async def begin_capture(self, *, user_key: str, original_text: str) -> CaptureDraftResult:
         correlation_id = self._new_correlation_id()
         action = await self._parser.parse(original_text)
         if action.intent == "unsupported":
+            self._metrics.increment("capture_parse_total", outcome="unsupported")
             return CaptureDraftResult(
                 status="unsupported",
                 user_message=action.user_confirmation_text,
                 correlation_id=correlation_id,
             )
 
+        self._metrics.increment("capture_parse_total", outcome="supported")
+        self._metrics.increment("capture_confirmation_total", outcome="requested")
         self._pending.put(user_key, original_text, action)
         return CaptureDraftResult(
             status="confirmation_required",
@@ -68,6 +74,7 @@ class CaptureFlow:
 
     def cancel_capture(self, *, user_key: str) -> None:
         self._pending.discard(user_key)
+        self._metrics.increment("capture_confirmation_total", outcome="cancelled")
 
     async def submit_confirmed_capture(
         self,
@@ -81,6 +88,7 @@ class CaptureFlow:
         correlation_id = self._new_correlation_id()
         pending = self._pending.pop(user_key)
         if pending is None:
+            self._metrics.increment("capture_submit_total", outcome="missing_draft")
             return CaptureSubmitResult(
                 submitted=False,
                 user_message="Tidak ada draft aktif atau draft sudah kedaluwarsa.",
@@ -96,6 +104,7 @@ class CaptureFlow:
             parsed_action=pending.parsed_action,
         )
         response = await self._progressos.submit_action(request)
+        self._metrics.increment("capture_submit_total", outcome="success")
         return CaptureSubmitResult(
             submitted=True,
             user_message=response.to_user_message(),

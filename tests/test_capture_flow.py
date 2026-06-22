@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 
 from progressos_bot.core.capture_flow import CaptureFlow
+from progressos_bot.observability.metrics import InMemoryMetricsSink
 from progressos_bot.pending import InMemoryPendingActionStore
 from progressos_bot.schemas import (
     ParsedAction,
@@ -74,6 +75,22 @@ def make_flow(
     return flow, parser, client
 
 
+def make_flow_with_metrics(
+    *,
+    action: ParsedAction | None = None,
+) -> tuple[CaptureFlow, InMemoryMetricsSink]:
+    metrics = InMemoryMetricsSink()
+    parser = FakeParser(action=action or make_action())
+    flow = CaptureFlow(
+        parser=parser,
+        progressos=FakeProgressOS(),
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+        correlation_id_factory=lambda: "corr-capture",
+        metrics=metrics,
+    )
+    return flow, metrics
+
+
 @pytest.mark.asyncio
 async def test_begin_capture_stores_supported_action_without_telegram_classes() -> None:
     flow, parser, _client = make_flow()
@@ -87,6 +104,19 @@ async def test_begin_capture_stores_supported_action_without_telegram_classes() 
     assert result.user_message == "Buat task Follow up invoice client A?"
     assert result.correlation_id == "corr-capture"
     assert parser.parsed_messages == ["buat task follow up invoice client A"]
+
+
+@pytest.mark.asyncio
+async def test_capture_flow_records_supported_parse_and_confirmation_metrics() -> None:
+    flow, metrics = make_flow_with_metrics()
+
+    await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="buat task follow up invoice client A",
+    )
+
+    assert metrics.count("capture_parse_total", outcome="supported") == 1
+    assert metrics.count("capture_confirmation_total", outcome="requested") == 1
 
 
 @pytest.mark.asyncio
@@ -109,6 +139,25 @@ async def test_begin_capture_returns_unsupported_without_pending_submit() -> Non
     assert submitted.submitted is False
     assert submitted.user_message == "Tidak ada draft aktif atau draft sudah kedaluwarsa."
     assert client.submitted_requests == []
+
+
+@pytest.mark.asyncio
+async def test_capture_flow_records_unsupported_and_missing_draft_metrics() -> None:
+    flow, metrics = make_flow_with_metrics(action=make_action("unsupported"))
+
+    await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="hapus semua task",
+    )
+    await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert metrics.count("capture_parse_total", outcome="unsupported") == 1
+    assert metrics.count("capture_submit_total", outcome="missing_draft") == 1
 
 
 @pytest.mark.asyncio
@@ -139,6 +188,24 @@ async def test_submit_confirmed_capture_sends_pending_action_to_progressos() -> 
 
 
 @pytest.mark.asyncio
+async def test_capture_flow_records_submit_success_metric() -> None:
+    flow, metrics = make_flow_with_metrics()
+    await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="buat task follow up invoice client A",
+    )
+
+    await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert metrics.count("capture_submit_total", outcome="success") == 1
+
+
+@pytest.mark.asyncio
 async def test_cancel_capture_discards_pending_action() -> None:
     flow, _parser, client = make_flow()
     await flow.begin_capture(
@@ -157,3 +224,12 @@ async def test_cancel_capture_discards_pending_action() -> None:
     assert result.submitted is False
     assert result.user_message == "Tidak ada draft aktif atau draft sudah kedaluwarsa."
     assert client.submitted_requests == []
+
+
+@pytest.mark.asyncio
+async def test_cancel_capture_records_metric() -> None:
+    flow, metrics = make_flow_with_metrics()
+
+    flow.cancel_capture(user_key="telegram:123")
+
+    assert metrics.count("capture_confirmation_total", outcome="cancelled") == 1

@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 
 from progressos_bot.core.read_commands import ReadCommandFlow
+from progressos_bot.observability.metrics import InMemoryMetricsSink
 from progressos_bot.schemas import (
     ProgressOSDashboardResponse,
     ProgressOSKanbanResponse,
@@ -47,13 +48,19 @@ class FakeProgressOSReadClient:
 @pytest.mark.asyncio
 async def test_read_command_flow_returns_standup_message_without_telegram_classes() -> None:
     client = FakeProgressOSReadClient()
-    flow = ReadCommandFlow(progressos=client, correlation_id_factory=lambda: "corr-read")
+    metrics = InMemoryMetricsSink()
+    flow = ReadCommandFlow(
+        progressos=client,
+        correlation_id_factory=lambda: "corr-read",
+        metrics=metrics,
+    )
 
     result = await flow.standup()
 
     assert result.user_message == "Standup kosong"
     assert result.correlation_id == "corr-read"
     assert client.calls == ["standup"]
+    assert metrics.count("read_command_total", command="standup", outcome="success") == 1
 
 
 @pytest.mark.asyncio
