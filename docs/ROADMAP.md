@@ -4,20 +4,20 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 3: Expanded Capture Intents.
+Phase 4: Read-Only Commands.
 
 Current focus:
 
-- Add supported capture intents beyond task creation.
-- Keep each intent behind strict Pydantic validation.
-- Map confirmed intent payloads to ProgressOS quick-capture types.
-- Keep user confirmation before every ProgressOS write.
-- CI-gated Phase 3 slices.
+- Add read-only ProgressOS commands.
+- Keep read responses concise and channel-friendly.
+- Respect ProgressOS authorization on every read endpoint.
+- Handle empty, unauthorized, and server-error responses safely.
+- CI-gated Phase 4 slices.
 
 ## Next Milestones
 
-1. Add `capture_learning` and verify quick-capture learning writes.
-2. Complete Phase 3 status after all expanded capture intents are covered.
+1. Add `/standup`.
+2. Add `/dashboard`.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.

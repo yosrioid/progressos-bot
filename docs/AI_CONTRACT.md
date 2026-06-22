@@ -140,6 +140,37 @@ Example:
 }
 ```
 
+## Supported Intent: capture_learning
+
+Use this when the user wants to capture a lesson learned, note, or knowledge item.
+
+Required payload fields:
+
+- `title`
+
+Optional payload fields:
+
+- `description`
+- `date`
+- `project_name`
+
+Example:
+
+```json
+{
+  "intent": "capture_learning",
+  "confidence": 0.9,
+  "language": "id",
+  "payload": {
+    "title": "Telegram webhook retry strategy",
+    "description": "Use idempotency key when retrying quick-capture writes",
+    "date": "2026-06-22",
+    "project_name": "ProgressOS"
+  },
+  "user_confirmation_text": "Catat learning \"Telegram webhook retry strategy\"?"
+}
+```
+
 ## Supported Intent: unsupported
 
 Use this for unsupported commands, ambiguous messages, or messages that cannot be safely converted.

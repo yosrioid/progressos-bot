@@ -138,3 +138,28 @@ async def test_parser_accepts_daily_progress_action() -> None:
     action = await parser.parse("catat daily progress integrasi backend selesai")
 
     assert action.intent == "log_daily_progress"
+
+
+@pytest.mark.asyncio
+async def test_parser_accepts_learning_action() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "capture_learning",
+                "confidence": 0.9,
+                "language": "id",
+                "payload": {
+                    "title": "Telegram webhook retry strategy",
+                    "description": "Use idempotency key when retrying quick-capture writes",
+                    "date": "2026-06-22",
+                    "project_name": "ProgressOS",
+                },
+                "user_confirmation_text": "Catat learning Telegram webhook retry strategy?",
+            }
+        ),
+        min_confidence=0.75,
+    )
+
+    action = await parser.parse("catat learning retry webhook pakai idempotency key")
+
+    assert action.intent == "capture_learning"

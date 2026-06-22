@@ -4,6 +4,7 @@ from uuid import uuid4
 import httpx
 
 from progressos_bot.schemas import (
+    CaptureLearningPayload,
     CreateBlockerPayload,
     CreateTaskPayload,
     LogDailyProgressPayload,
@@ -140,6 +141,18 @@ class ProgressOSClient:
             notes = self._build_notes(request, description=action.payload.description)
             return ProgressOSQuickCaptureRequest(
                 type="daily_progress",
+                title=action.payload.title,
+                project_name=action.payload.project_name,
+                notes=notes,
+                date=action.payload.date,
+            )
+
+        if action.intent == "capture_learning" and isinstance(
+            action.payload, CaptureLearningPayload
+        ):
+            notes = self._build_notes(request, description=action.payload.description)
+            return ProgressOSQuickCaptureRequest(
+                type="learning",
                 title=action.payload.title,
                 project_name=action.payload.project_name,
                 notes=notes,
