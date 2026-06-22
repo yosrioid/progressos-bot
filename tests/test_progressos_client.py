@@ -10,6 +10,7 @@ from progressos_bot.progressos_client import (
     ProgressOSTransientError,
     ProgressOSValidationError,
 )
+from progressos_bot.retry_queue import InMemoryRetryQueue
 from progressos_bot.schemas import ParsedAction, ProgressOSActionRequest
 
 
@@ -483,6 +484,7 @@ async def test_submit_action_retries_transient_server_errors_with_same_idempoten
 @pytest.mark.asyncio
 async def test_submit_action_raises_transient_error_after_timeout_retries() -> None:
     attempts = 0
+    retry_queue = InMemoryRetryQueue()
 
     def handler(request: httpx.Request) -> httpx.Response:
         nonlocal attempts
@@ -497,12 +499,20 @@ async def test_submit_action_raises_transient_error_after_timeout_retries() -> N
         idempotency_key_factory=lambda: "fixed-key",
         max_attempts=2,
         transport=httpx.MockTransport(handler),
+        retry_queue=retry_queue,
     )
 
     with pytest.raises(ProgressOSTransientError):
         await client.submit_action(make_action_request())
 
     assert attempts == 2
+    queued = retry_queue.list_all()
+    assert len(queued) == 1
+    assert queued[0].idempotency_key == "fixed-key"
+    assert queued[0].attempt_count == 2
+    assert queued[0].last_error == "TimeoutException"
+    assert queued[0].quick_capture.title == "Follow up invoice client A"
+    assert "Idempotency key: fixed-key" in (queued[0].quick_capture.notes or "")
 
 
 @pytest.mark.asyncio

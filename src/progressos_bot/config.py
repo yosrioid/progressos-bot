@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     telegram_progressos_user_map: str = ""
     confirmation_ttl_seconds: int = Field(default=900, gt=0)
     pending_store_path: str = ""
+    retry_queue_path: str = ""
 
     app_env: Literal["local", "staging", "production"] = "local"
     log_level: str = "INFO"

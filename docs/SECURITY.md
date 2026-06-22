@@ -37,6 +37,10 @@ When `PENDING_STORE_PATH` is configured, pending drafts are stored in a local SQ
 so confirmation callbacks can survive bot restarts. Treat that file as runtime data and do
 not commit it.
 
+When `RETRY_QUEUE_PATH` is configured, exhausted transient writes are stored in a local
+SQLite queue with the quick-capture payload and original idempotency key. The queue must
+not store bearer tokens or raw request headers.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
