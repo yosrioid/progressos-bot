@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
+from progressos_bot.core.admin import AdminInfoService
 from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.core.identity import CaptureIdentityService
 from progressos_bot.core.read_commands import ReadCommandFlow
@@ -41,6 +42,7 @@ class ProgressOSTelegramBot:
         progressos: ProgressOSClient,
         authorizer: TelegramAllowlist,
         user_map: TelegramProgressOSUserMap,
+        admin_info: AdminInfoService,
         confirmation_ttl_seconds: int = 900,
         pending_store: PendingActionStore | None = None,
     ) -> None:
@@ -48,6 +50,7 @@ class ProgressOSTelegramBot:
         self._progressos = progressos
         self._authorizer = authorizer
         self._user_map = user_map
+        self._admin_info = admin_info
         self._identity = CaptureIdentityService(
             authorizer=authorizer,
             progressos_user_resolver=user_map,
@@ -72,6 +75,7 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("overdue", self._handle_overdue))
         app.add_handler(CommandHandler("kanban", self._handle_kanban))
         app.add_handler(CommandHandler("learning_stats", self._handle_learning_stats))
+        app.add_handler(CommandHandler("version", self._handle_version))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -95,6 +99,14 @@ class ProgressOSTelegramBot:
             return
         self._capture_flow.cancel_capture(user_key=str(update.effective_user.id))
         await update.message.reply_text("Draft dibatalkan.")
+
+    async def _handle_version(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        del context
+        if update.message is None:
+            return
+        if not await self._authorize_message(update):
+            return
+        await update.message.reply_text(self._admin_info.version().to_user_message())
 
     async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
