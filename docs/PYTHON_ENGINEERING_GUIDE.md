@@ -62,6 +62,7 @@ progressos-bot/
         read_commands.py
       observability/
         correlation.py
+        metrics.py
       bot.py
       config.py
       logging.py
