@@ -152,6 +152,7 @@ Tests to add:
 Current implementation slice:
 
 - `create_task` maps to quick-capture `task`.
+- `create_blocker` maps to quick-capture `blocker`.
 - The client adds `Idempotency-Key` to every confirmed submit.
 - The client retries timeout, network, and 5xx failures with the same idempotency key.
 - Laravel `422` validation responses are parsed into a typed validation error.
@@ -161,7 +162,7 @@ Current implementation slice:
 
 ## Phase 3: Expanded Capture Intents
 
-Status: planned.
+Status: in progress.
 
 Goal: support ProgressOS capture types beyond task creation while keeping AI schemas strict.
 
@@ -191,7 +192,7 @@ Acceptance criteria:
 
 Suggested implementation order:
 
-1. `create_blocker`
+1. `create_blocker` - implemented.
 2. `log_work`
 3. `log_daily_progress`
 4. `capture_learning`

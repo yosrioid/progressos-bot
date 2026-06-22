@@ -34,6 +34,28 @@ def make_action_request() -> ProgressOSActionRequest:
     )
 
 
+def make_blocker_action_request() -> ProgressOSActionRequest:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "create_blocker",
+            "confidence": 0.89,
+            "language": "id",
+            "payload": {
+                "title": "Blocked by missing API token",
+                "description": "Need ProgressOS token from admin",
+                "severity": "high",
+            },
+            "user_confirmation_text": "Catat blocker missing API token?",
+        }
+    )
+    return ProgressOSActionRequest(
+        source_user_id="123",
+        source_chat_id="456",
+        original_text="catat blocker token API belum ada",
+        parsed_action=action,
+    )
+
+
 @pytest.mark.asyncio
 async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() -> None:
     seen_requests: list[httpx.Request] = []
@@ -78,6 +100,36 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
 
 
 @pytest.mark.asyncio
+async def test_submit_action_posts_blocker_quick_capture_payload() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(200, json={"message": "Blocker captured."})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_blocker_action_request())
+
+    assert response.message == "Blocker captured."
+    assert len(seen_requests) == 1
+    payload = json.loads(seen_requests[0].content)
+    assert payload["type"] == "blocker"
+    assert payload["title"] == "Blocked by missing API token"
+    assert "Original message: catat blocker token API belum ada" in payload["notes"]
+    assert "Description: Need ProgressOS token from admin" in payload["notes"]
+    assert "Severity: high" in payload["notes"]
+    assert "date" not in payload
+
+
+@pytest.mark.asyncio
 async def test_submit_action_accepts_success_response_without_optional_fields() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Idempotency-Key"] == "fixed-key"
@@ -116,6 +168,24 @@ def test_build_quick_capture_request_maps_confirmed_task() -> None:
     assert quick_capture.notes is not None
     assert "Original message: buat task follow up invoice client A besok" in quick_capture.notes
     assert "Description: Kirim invoice ulang" in quick_capture.notes
+
+
+def test_build_quick_capture_request_maps_confirmed_blocker() -> None:
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+    )
+
+    quick_capture = client.build_quick_capture_request(make_blocker_action_request())
+
+    assert quick_capture.type == "blocker"
+    assert quick_capture.title == "Blocked by missing API token"
+    assert quick_capture.date is None
+    assert quick_capture.notes is not None
+    assert "Description: Need ProgressOS token from admin" in quick_capture.notes
+    assert "Severity: high" in quick_capture.notes
 
 
 @pytest.mark.asyncio

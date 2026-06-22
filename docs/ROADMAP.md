@@ -4,20 +4,20 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 2: ProgressOS Quick Capture Completion.
+Phase 3: Expanded Capture Intents.
 
 Current focus:
 
-- Quick-capture mapping from confirmed bot actions.
-- Idempotency keys and retry-safe HTTP behavior.
-- Safe validation, transient, and client error messages.
-- Success responses that surface useful ProgressOS paths.
-- CI-gated Phase 2 slices.
+- Add supported capture intents beyond task creation.
+- Keep each intent behind strict Pydantic validation.
+- Map confirmed intent payloads to ProgressOS quick-capture types.
+- Keep user confirmation before every ProgressOS write.
+- CI-gated Phase 3 slices.
 
 ## Next Milestones
 
-1. Finish Phase 2 quick-capture response and error coverage.
-2. Add expanded capture intents for blocker, work log, daily progress, and learning.
+1. Complete `create_blocker` and verify quick-capture blocker writes.
+2. Add `log_work`, `log_daily_progress`, and `capture_learning`.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.

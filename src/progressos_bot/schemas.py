@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Intent = Literal["create_task", "unsupported"]
+Intent = Literal["create_task", "create_blocker", "unsupported"]
 Priority = Literal["low", "medium", "high", "urgent"]
 Language = Literal["id", "en", "unknown"]
 QuickCaptureType = Literal["task", "blocker", "work_log", "daily_progress", "learning"]
@@ -18,6 +18,14 @@ class CreateTaskPayload(BaseModel):
     priority: Priority = "medium"
 
 
+class CreateBlockerPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=3, max_length=180)
+    description: str | None = Field(default=None, max_length=2000)
+    severity: Priority = "medium"
+
+
 class UnsupportedPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -30,13 +38,17 @@ class ParsedAction(BaseModel):
     intent: Intent
     confidence: float = Field(ge=0, le=1)
     language: Language
-    payload: CreateTaskPayload | UnsupportedPayload
+    payload: CreateTaskPayload | CreateBlockerPayload | UnsupportedPayload
     user_confirmation_text: str = Field(min_length=5, max_length=500)
 
     @model_validator(mode="after")
     def validate_payload_matches_intent(self) -> "ParsedAction":
         if self.intent == "create_task" and not isinstance(self.payload, CreateTaskPayload):
             raise ValueError("create_task intent requires CreateTaskPayload")
+        if self.intent == "create_blocker" and not isinstance(
+            self.payload, CreateBlockerPayload
+        ):
+            raise ValueError("create_blocker intent requires CreateBlockerPayload")
         if self.intent == "unsupported" and not isinstance(self.payload, UnsupportedPayload):
             raise ValueError("unsupported intent requires UnsupportedPayload")
         return self

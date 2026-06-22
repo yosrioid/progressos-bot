@@ -24,6 +24,25 @@ def test_create_task_payload_is_valid() -> None:
     assert action.payload.title == "Follow up invoice client A"
 
 
+def test_create_blocker_payload_is_valid() -> None:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "create_blocker",
+            "confidence": 0.89,
+            "language": "id",
+            "payload": {
+                "title": "Blocked by missing API token",
+                "description": "Need ProgressOS token from admin",
+                "severity": "high",
+            },
+            "user_confirmation_text": "Catat blocker missing API token?",
+        }
+    )
+
+    assert action.intent == "create_blocker"
+    assert action.payload.title == "Blocked by missing API token"
+
+
 def test_unknown_payload_fields_are_rejected() -> None:
     with pytest.raises(ValidationError):
         ParsedAction.model_validate(
@@ -60,3 +79,20 @@ def test_intent_must_match_payload_shape() -> None:
             }
         )
 
+
+def test_create_blocker_intent_rejects_task_payload_shape() -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "create_blocker",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "high",
+                },
+                "user_confirmation_text": "Catat blocker?",
+            }
+        )

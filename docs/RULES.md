@@ -34,6 +34,7 @@ Groq must return exactly one JSON object:
 Allowed `intent` values:
 
 - `create_task`
+- `create_blocker`
 - `unsupported`
 
 Allowed `priority` values:

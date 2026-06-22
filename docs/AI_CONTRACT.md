@@ -46,6 +46,36 @@ Optional payload fields:
 - `description`
 - `due_date`
 
+## Supported Intent: create_blocker
+
+Use this when the user wants to capture a blocker or impediment that should be stored in
+ProgressOS quick capture.
+
+Required payload fields:
+
+- `title`
+- `severity`
+
+Optional payload fields:
+
+- `description`
+
+Example:
+
+```json
+{
+  "intent": "create_blocker",
+  "confidence": 0.89,
+  "language": "id",
+  "payload": {
+    "title": "Blocked by missing API token",
+    "description": "Need ProgressOS token from admin",
+    "severity": "high"
+  },
+  "user_confirmation_text": "Catat blocker \"Blocked by missing API token\" dengan severity high?"
+}
+```
+
 ## Supported Intent: unsupported
 
 Use this for unsupported commands, ambiguous messages, or messages that cannot be safely converted.

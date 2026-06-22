@@ -63,3 +63,27 @@ async def test_parser_accepts_supported_action() -> None:
     action = await parser.parse("buat task follow up invoice")
 
     assert action.intent == "create_task"
+
+
+@pytest.mark.asyncio
+async def test_parser_accepts_blocker_action() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "create_blocker",
+                "confidence": 0.88,
+                "language": "id",
+                "payload": {
+                    "title": "Blocked by missing API token",
+                    "description": "Need ProgressOS token from admin",
+                    "severity": "high",
+                },
+                "user_confirmation_text": "Catat blocker missing API token?",
+            }
+        ),
+        min_confidence=0.75,
+    )
+
+    action = await parser.parse("catat blocker token API belum ada")
+
+    assert action.intent == "create_blocker"
