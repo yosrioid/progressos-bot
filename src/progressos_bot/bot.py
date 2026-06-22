@@ -41,6 +41,7 @@ class ProgressOSTelegramBot:
         app = Application.builder().token(self._token).build()
         app.add_handler(CommandHandler("start", self._handle_start))
         app.add_handler(CommandHandler("cancel", self._handle_cancel))
+        app.add_handler(CommandHandler("standup", self._handle_standup))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -60,6 +61,28 @@ class ProgressOSTelegramBot:
             return
         self._pending.pop(str(update.effective_user.id), None)
         await update.message.reply_text("Draft dibatalkan.")
+
+    async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        del context
+        if update.message is None:
+            return
+
+        try:
+            response = await self._progressos.get_standup()
+        except ProgressOSTransientError as exc:
+            logger.warning("Transient ProgressOS standup failure")
+            await update.message.reply_text(str(exc))
+            return
+        except ProgressOSClientError as exc:
+            logger.warning("ProgressOS standup client failure")
+            await update.message.reply_text(str(exc))
+            return
+        except Exception as exc:
+            logger.exception("Failed to fetch ProgressOS standup")
+            await update.message.reply_text(f"Gagal mengambil standup: {exc}")
+            return
+
+        await update.message.reply_text(response.to_user_message())
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context

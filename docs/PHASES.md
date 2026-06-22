@@ -202,13 +202,13 @@ Suggested implementation order:
 
 ## Phase 4: Read-Only Commands
 
-Status: planned.
+Status: in progress.
 
 Goal: let users ask ProgressOS for read-only status summaries without changing data.
 
 Commands:
 
-- `/standup`
+- `/standup` - implemented.
 - `/dashboard`
 - `/search <query>`
 - `/overdue`

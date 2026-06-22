@@ -179,3 +179,56 @@ class ProgressOSValidationErrorResponse(BaseModel):
 
     message: str
     errors: dict[str, list[str]] = Field(default_factory=dict)
+
+
+class ProgressOSStandupItem(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str | None = None
+    name: str | None = None
+    summary: str | None = None
+    status: str | None = None
+    project_name: str | None = None
+
+    def to_user_line(self, index: int) -> str:
+        label = self.title or self.name or self.summary or "Item standup"
+        details = []
+        if self.project_name:
+            details.append(self.project_name)
+        if self.status:
+            details.append(self.status)
+        suffix = f" ({', '.join(details)})" if details else ""
+        return f"{index}. {label}{suffix}"
+
+
+class ProgressOSStandupResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    items: list[ProgressOSStandupItem] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_items(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "items" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "items": raw_data}
+
+        standup = data.get("standup")
+        if isinstance(standup, list):
+            return {**data, "items": standup}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.items:
+            return self.message or "Tidak ada item standup."
+
+        header = self.message or "Standup:"
+        lines = [item.to_user_line(index) for index, item in enumerate(self.items[:10], start=1)]
+        if len(self.items) > 10:
+            lines.append(f"...dan {len(self.items) - 10} item lain.")
+        return "\n".join([header, *lines])
