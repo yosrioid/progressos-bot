@@ -43,6 +43,7 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("cancel", self._handle_cancel))
         app.add_handler(CommandHandler("standup", self._handle_standup))
         app.add_handler(CommandHandler("dashboard", self._handle_dashboard))
+        app.add_handler(CommandHandler("search", self._handle_search))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -103,6 +104,36 @@ class ProgressOSTelegramBot:
         except Exception as exc:
             logger.exception("Failed to fetch ProgressOS dashboard")
             await update.message.reply_text(f"Gagal mengambil dashboard: {exc}")
+            return
+
+        await update.message.reply_text(response.to_user_message())
+
+    async def _handle_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if update.message is None:
+            return
+
+        args = context.args or []
+        query = " ".join(args).strip()
+        if not query:
+            await update.message.reply_text("Kirim /search <query>.")
+            return
+        if len(query) > 120:
+            await update.message.reply_text("Query pencarian maksimal 120 karakter.")
+            return
+
+        try:
+            response = await self._progressos.search(query)
+        except ProgressOSTransientError as exc:
+            logger.warning("Transient ProgressOS search failure")
+            await update.message.reply_text(str(exc))
+            return
+        except ProgressOSClientError as exc:
+            logger.warning("ProgressOS search client failure")
+            await update.message.reply_text(str(exc))
+            return
+        except Exception as exc:
+            logger.exception("Failed to search ProgressOS")
+            await update.message.reply_text(f"Gagal mencari di ProgressOS: {exc}")
             return
 
         await update.message.reply_text(response.to_user_message())

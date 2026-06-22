@@ -126,3 +126,15 @@ Accept: application/json
 The bot formats a concise Telegram response from `metrics`, `items`, or a list-shaped
 `data` field. Empty responses show `Tidak ada ringkasan dashboard.`. Unauthorized
 responses are handled with a safe generic message without exposing raw server details.
+
+## Read-Only Search
+
+```http
+GET /api/v1/search?q=<query>
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+Telegram `/search` requires a non-empty query and rejects queries longer than 120
+characters before calling ProgressOS. The bot formats results from `results`, `items`, or
+a list-shaped `data` field. Empty responses show `Tidak ada hasil pencarian.`.

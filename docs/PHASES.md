@@ -210,7 +210,7 @@ Commands:
 
 - `/standup` - implemented.
 - `/dashboard` - implemented.
-- `/search <query>`
+- `/search <query>` - implemented.
 - `/overdue`
 - `/kanban`
 - `/learning_stats`
