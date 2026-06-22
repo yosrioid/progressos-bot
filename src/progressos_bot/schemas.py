@@ -392,3 +392,81 @@ class ProgressOSOverdueResponse(BaseModel):
         if len(self.tasks) > 10:
             lines.append(f"...dan {len(self.tasks) - 10} task lain.")
         return "\n".join([header, *lines])
+
+
+class ProgressOSKanbanTask(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str | None = None
+    name: str | None = None
+    project_name: str | None = None
+    record_path: str | None = None
+
+    def to_user_text(self) -> str:
+        label = self.title or self.name or "Task"
+        project = f" ({self.project_name})" if self.project_name else ""
+        path = f" - {self.record_path}" if self.record_path else ""
+        return f"{label}{project}{path}"
+
+
+class ProgressOSKanbanColumn(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    name: str | None = None
+    title: str | None = None
+    status: str | None = None
+    tasks: list[ProgressOSKanbanTask] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_tasks(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "tasks" in data:
+            return data
+
+        items = data.get("items")
+        if isinstance(items, list):
+            return {**data, "tasks": items}
+
+        return data
+
+    def to_user_lines(self, max_tasks: int = 3) -> list[str]:
+        label = self.title or self.name or self.status or "Kolom"
+        if not self.tasks:
+            return [f"{label}: kosong"]
+
+        lines = [f"{label}: {len(self.tasks)} task"]
+        for task in self.tasks[:max_tasks]:
+            lines.append(f"- {task.to_user_text()}")
+        if len(self.tasks) > max_tasks:
+            lines.append(f"- ...dan {len(self.tasks) - max_tasks} task lain")
+        return lines
+
+
+class ProgressOSKanbanResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    columns: list[ProgressOSKanbanColumn] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_columns(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "columns" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "columns": raw_data}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.columns:
+            return self.message or "Tidak ada data kanban."
+
+        lines = [self.message or "Kanban:"]
+        for column in self.columns[:6]:
+            lines.extend(column.to_user_lines())
+        if len(self.columns) > 6:
+            lines.append(f"...dan {len(self.columns) - 6} kolom lain.")
+        return "\n".join(lines)

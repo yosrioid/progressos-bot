@@ -212,7 +212,7 @@ Commands:
 - `/dashboard` - implemented.
 - `/search <query>` - implemented.
 - `/overdue` - implemented.
-- `/kanban`
+- `/kanban` - implemented.
 - `/learning_stats`
 
 Rules:

@@ -150,3 +150,16 @@ Accept: application/json
 The bot formats overdue tasks from `tasks`, `items`, or a list-shaped `data` field. Empty
 responses show `Tidak ada task overdue.`. Unauthorized responses are handled with a safe
 generic message without exposing raw server details.
+
+## Read-Only Kanban
+
+```http
+GET /api/v1/tasks/kanban
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+The bot formats kanban columns from `columns` or a list-shaped `data` field, limiting each
+column to a few tasks for chat readability. Empty responses show `Tidak ada data kanban.`.
+Unauthorized responses are handled with a safe generic message without exposing raw server
+details.

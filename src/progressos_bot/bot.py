@@ -45,6 +45,7 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("dashboard", self._handle_dashboard))
         app.add_handler(CommandHandler("search", self._handle_search))
         app.add_handler(CommandHandler("overdue", self._handle_overdue))
+        app.add_handler(CommandHandler("kanban", self._handle_kanban))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -157,6 +158,28 @@ class ProgressOSTelegramBot:
         except Exception as exc:
             logger.exception("Failed to fetch ProgressOS overdue tasks")
             await update.message.reply_text(f"Gagal mengambil task overdue: {exc}")
+            return
+
+        await update.message.reply_text(response.to_user_message())
+
+    async def _handle_kanban(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        del context
+        if update.message is None:
+            return
+
+        try:
+            response = await self._progressos.get_kanban()
+        except ProgressOSTransientError as exc:
+            logger.warning("Transient ProgressOS kanban failure")
+            await update.message.reply_text(str(exc))
+            return
+        except ProgressOSClientError as exc:
+            logger.warning("ProgressOS kanban client failure")
+            await update.message.reply_text(str(exc))
+            return
+        except Exception as exc:
+            logger.exception("Failed to fetch ProgressOS kanban")
+            await update.message.reply_text(f"Gagal mengambil kanban: {exc}")
             return
 
         await update.message.reply_text(response.to_user_message())
