@@ -86,7 +86,7 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         try:
@@ -110,7 +110,7 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         try:
@@ -133,7 +133,7 @@ class ProgressOSTelegramBot:
     async def _handle_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         args = context.args or []
@@ -166,7 +166,7 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         try:
@@ -190,7 +190,7 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         try:
@@ -216,7 +216,7 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
-        if not await self._authorize_message(update):
+        if not await self._authorize_mapped_message(update):
             return
 
         try:
@@ -351,6 +351,23 @@ class ProgressOSTelegramBot:
         try:
             self._authorizer.require_authorized(identity)
         except UserAuthorizationError as exc:
+            await update.message.reply_text(str(exc))
+            return False
+        return True
+
+    async def _authorize_mapped_message(self, update: Update) -> bool:
+        if not await self._authorize_message(update):
+            return False
+        if update.message is None or update.effective_user is None:
+            return False
+
+        identity = ChannelUserIdentity(
+            channel="telegram",
+            channel_user_id=str(update.effective_user.id),
+        )
+        try:
+            self._user_map.resolve(identity)
+        except UserMappingError as exc:
             await update.message.reply_text(str(exc))
             return False
         return True
