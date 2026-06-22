@@ -5,6 +5,7 @@ import pytest
 
 from progressos_bot.progressos_client import (
     ProgressOSClient,
+    ProgressOSClientError,
     ProgressOSTransientError,
     ProgressOSValidationError,
 )
@@ -493,3 +494,103 @@ async def test_submit_action_raises_transient_error_after_timeout_retries() -> N
         await client.submit_action(make_action_request())
 
     assert attempts == 2
+
+
+@pytest.mark.asyncio
+async def test_get_standup_returns_concise_user_message() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Standup hari ini",
+                "items": [
+                    {
+                        "title": "Ship quick capture",
+                        "project_name": "ProgressOS",
+                        "status": "done",
+                    },
+                    {
+                        "title": "Review webhook deployment",
+                        "project_name": "ProgressOS",
+                        "status": "next",
+                    },
+                ],
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_standup()
+
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.method == "GET"
+    assert request.url.path == "/api/v1/standup"
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert response.to_user_message() == (
+        "Standup hari ini\n"
+        "1. Ship quick capture (ProgressOS, done)\n"
+        "2. Review webhook deployment (ProgressOS, next)"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_standup_handles_empty_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"items": []})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_standup()
+
+    assert response.items == []
+    assert response.to_user_message() == "Tidak ada item standup."
+
+
+@pytest.mark.asyncio
+async def test_get_standup_rejects_unauthorized_response_safely() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"message": "Forbidden details"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSClientError, match="menolak akses standup"):
+        await client.get_standup()
+
+
+@pytest.mark.asyncio
+async def test_get_standup_raises_transient_error_for_server_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"message": "Temporary failure"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.get_standup()

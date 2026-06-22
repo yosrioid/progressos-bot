@@ -16,8 +16,8 @@ Current focus:
 
 ## Next Milestones
 
-1. Add `/standup`.
-2. Add `/dashboard`.
+1. Add `/dashboard`.
+2. Add `/search <query>`.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.

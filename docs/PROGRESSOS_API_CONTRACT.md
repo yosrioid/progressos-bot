@@ -102,3 +102,15 @@ Unsupported actions are not submitted.
 
 The bot treats `422` responses as validation errors and shows the response `message` to the
 user without exposing request headers, bearer tokens, or raw exception traces.
+
+## Read-Only Standup
+
+```http
+GET /api/v1/standup
+Authorization: Bearer <PROGRESSOS_API_TOKEN>
+Accept: application/json
+```
+
+The bot formats a concise Telegram response from `items` or a list-shaped `data` field.
+Empty responses show `Tidak ada item standup.`. Unauthorized responses are handled with a
+safe generic message without exposing raw server details.
