@@ -877,3 +877,108 @@ async def test_get_overdue_raises_transient_error_for_server_error() -> None:
 
     with pytest.raises(ProgressOSTransientError):
         await client.get_overdue()
+
+
+@pytest.mark.asyncio
+async def test_get_kanban_returns_concise_user_message() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Kanban ProgressOS",
+                "columns": [
+                    {
+                        "name": "Todo",
+                        "tasks": [
+                            {
+                                "title": "Review webhook deployment",
+                                "project_name": "ProgressOS",
+                                "record_path": "/tasks/42",
+                            }
+                        ],
+                    },
+                    {
+                        "name": "Done",
+                        "tasks": [],
+                    },
+                ],
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_kanban()
+
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.method == "GET"
+    assert request.url.path == "/api/v1/tasks/kanban"
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert response.to_user_message() == (
+        "Kanban ProgressOS\n"
+        "Todo: 1 task\n"
+        "- Review webhook deployment (ProgressOS) - /tasks/42\n"
+        "Done: kosong"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_kanban_handles_empty_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"columns": []})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_kanban()
+
+    assert response.columns == []
+    assert response.to_user_message() == "Tidak ada data kanban."
+
+
+@pytest.mark.asyncio
+async def test_get_kanban_rejects_unauthorized_response_safely() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"message": "Unauthenticated details"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSClientError, match="menolak akses kanban"):
+        await client.get_kanban()
+
+
+@pytest.mark.asyncio
+async def test_get_kanban_raises_transient_error_for_server_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"message": "Temporary failure"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.get_kanban()
