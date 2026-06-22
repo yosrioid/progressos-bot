@@ -29,6 +29,7 @@ def main() -> None:
             revoked_value=settings.telegram_revoked_user_ids,
         ),
         user_map=TelegramProgressOSUserMap.from_csv(settings.telegram_progressos_user_map),
+        confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
     )
     bot.build_application().run_polling()
 

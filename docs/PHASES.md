@@ -232,7 +232,7 @@ Acceptance criteria:
 
 ## Phase 5: User Identity And Authorization
 
-Status: in progress.
+Status: complete.
 
 Goal: move from one shared ProgressOS API token to per-user authorization.
 
@@ -264,14 +264,14 @@ Acceptance criteria:
 
 ## Phase 6: Persistence And Operational Reliability
 
-Status: planned.
+Status: in progress.
 
 Goal: make pending confirmations and delivery behavior survive bot restarts.
 
 Features:
 
 - Persistent pending action store.
-- Confirmation expiry.
+- Confirmation expiry - implemented through `CONFIRMATION_TTL_SECONDS`.
 - Rehydration after restart.
 - Idempotency-aware retry queue.
 - Dead-letter handling for repeated failures.

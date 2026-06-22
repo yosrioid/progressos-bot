@@ -4,20 +4,25 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 5: User Identity And Authorization.
+Phase 6: Persistence And Operational Reliability.
 
 Current focus:
 
-- Move from one shared ProgressOS API token toward per-user authorization.
-- Map Telegram user IDs to ProgressOS users.
-- Block unknown or revoked users before submit/read actions.
-- Keep ProgressOS as the final authorization gate.
-- CI-gated Phase 5 slices.
+- Make pending confirmations safer and restart-aware.
+- Expire stale confirmation drafts before submit.
+- Add persistent pending action storage.
+- Keep idempotent writes recoverable.
+- CI-gated Phase 6 slices.
 
 ## Next Milestones
 
-1. Move identity mapping server-side when ProgressOS exposes it.
-2. Extract channel-neutral core services before adding another channel.
+1. Add persistent pending action store.
+2. Add pending action rehydration after restart.
+3. Add idempotency-aware retry queue.
+4. Add dead-letter handling for repeated failures.
+5. Add structured operational logs.
+6. Move identity mapping server-side when ProgressOS exposes it.
+7. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 

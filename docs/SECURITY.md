@@ -30,6 +30,9 @@ Confirmed writes include audit notes with stable source IDs, mapped ProgressOS u
 parser summary, submit timestamp, and idempotency key. Audit notes must not include bearer
 tokens, raw request headers, or `.env` values.
 
+Pending confirmation drafts expire after `CONFIRMATION_TTL_SECONDS`. Expired drafts are
+dropped instead of being submitted to ProgressOS.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
