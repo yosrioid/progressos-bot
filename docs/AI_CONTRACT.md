@@ -76,6 +76,39 @@ Example:
 }
 ```
 
+## Supported Intent: log_work
+
+Use this when the user wants to record work already performed.
+
+Required payload fields:
+
+- `title`
+- `duration_minutes`
+
+Optional payload fields:
+
+- `description`
+- `date`
+- `project_name`
+
+Example:
+
+```json
+{
+  "intent": "log_work",
+  "confidence": 0.9,
+  "language": "id",
+  "payload": {
+    "title": "Implement Telegram webhook",
+    "description": "Finished webhook server draft",
+    "date": "2026-06-22",
+    "duration_minutes": 90,
+    "project_name": "ProgressOS"
+  },
+  "user_confirmation_text": "Catat work log \"Implement Telegram webhook\" selama 90 menit?"
+}
+```
+
 ## Supported Intent: unsupported
 
 Use this for unsupported commands, ambiguous messages, or messages that cannot be safely converted.

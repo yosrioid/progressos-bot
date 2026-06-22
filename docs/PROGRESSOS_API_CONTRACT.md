@@ -59,6 +59,10 @@ Current supported mapping:
 - `original_text`, source channel, source user, source chat, and optional description -> `notes`
 - `create_blocker` -> `type: "blocker"`
 - `payload.severity` -> `notes`
+- `log_work` -> `type: "work_log"`
+- `payload.duration_minutes` -> `duration_minutes`
+- `payload.project_name` -> `project_name`
+- `payload.date` -> `date`
 
 Unsupported actions are not submitted.
 

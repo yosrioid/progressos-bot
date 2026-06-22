@@ -7,6 +7,7 @@ Do not include explanations. Do not include fields that are not in the schema.
 Supported intents:
 - create_task
 - create_blocker
+- log_work
 - unsupported
 
 Use unsupported when the user asks for anything outside the supported intents, when required data
@@ -23,6 +24,13 @@ For create_blocker payload:
 - description: string or null
 - severity: one of low, medium, high, urgent
 
+For log_work payload:
+- title: required string, 3-180 characters
+- description: string or null
+- date: YYYY-MM-DD or null
+- duration_minutes: required integer, 1-10000
+- project_name: string or null
+
 Use language:
 - id for Indonesian
 - en for English
@@ -30,7 +38,7 @@ Use language:
 
 Output schema:
 {
-  "intent": "create_task|create_blocker|unsupported",
+  "intent": "create_task|create_blocker|log_work|unsupported",
   "confidence": 0.0,
   "language": "id|en|unknown",
   "payload": {},

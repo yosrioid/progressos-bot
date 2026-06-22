@@ -35,6 +35,7 @@ Allowed `intent` values:
 
 - `create_task`
 - `create_blocker`
+- `log_work`
 - `unsupported`
 
 Allowed `priority` values:

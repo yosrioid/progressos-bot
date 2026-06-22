@@ -6,6 +6,7 @@ import httpx
 from progressos_bot.schemas import (
     CreateBlockerPayload,
     CreateTaskPayload,
+    LogWorkPayload,
     ProgressOSActionRequest,
     ProgressOSActionResponse,
     ProgressOSQuickCaptureRequest,
@@ -119,6 +120,17 @@ class ProgressOSClient:
                 type="blocker",
                 title=action.payload.title,
                 notes=notes,
+            )
+
+        if action.intent == "log_work" and isinstance(action.payload, LogWorkPayload):
+            notes = self._build_notes(request, description=action.payload.description)
+            return ProgressOSQuickCaptureRequest(
+                type="work_log",
+                title=action.payload.title,
+                project_name=action.payload.project_name,
+                notes=notes,
+                date=action.payload.date,
+                duration_minutes=action.payload.duration_minutes,
             )
 
         raise ProgressOSClientError("Action belum didukung oleh quick capture.")

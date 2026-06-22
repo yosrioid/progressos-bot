@@ -43,6 +43,27 @@ def test_create_blocker_payload_is_valid() -> None:
     assert action.payload.title == "Blocked by missing API token"
 
 
+def test_log_work_payload_is_valid() -> None:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "log_work",
+            "confidence": 0.9,
+            "language": "id",
+            "payload": {
+                "title": "Implement Telegram webhook",
+                "description": "Finished webhook server draft",
+                "date": "2026-06-22",
+                "duration_minutes": 90,
+                "project_name": "ProgressOS",
+            },
+            "user_confirmation_text": "Catat work log Implement Telegram webhook selama 90 menit?",
+        }
+    )
+
+    assert action.intent == "log_work"
+    assert action.payload.title == "Implement Telegram webhook"
+
+
 def test_unknown_payload_fields_are_rejected() -> None:
     with pytest.raises(ValidationError):
         ParsedAction.model_validate(
@@ -94,5 +115,23 @@ def test_create_blocker_intent_rejects_task_payload_shape() -> None:
                     "priority": "high",
                 },
                 "user_confirmation_text": "Catat blocker?",
+            }
+        )
+
+
+def test_log_work_intent_rejects_task_payload_shape() -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "log_work",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "high",
+                },
+                "user_confirmation_text": "Catat work log?",
             }
         )
