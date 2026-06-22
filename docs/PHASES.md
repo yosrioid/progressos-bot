@@ -291,19 +291,19 @@ Acceptance criteria:
 
 ## Phase 7: Webhook Deployment
 
-Status: planned.
+Status: complete.
 
 Goal: support production deployment through webhooks instead of polling.
 
 Features:
 
-- Webhook server entrypoint.
-- Health endpoint.
-- Readiness endpoint.
-- Graceful shutdown.
-- Deployment config examples.
-- Reverse proxy notes.
-- Telegram webhook secret verification where supported.
+- Webhook server entrypoint - implemented.
+- Health endpoint - implemented.
+- Readiness endpoint - implemented.
+- Graceful shutdown - implemented.
+- Deployment config examples - implemented.
+- Reverse proxy notes - implemented.
+- Telegram webhook secret verification where supported - implemented.
 
 Rules:
 

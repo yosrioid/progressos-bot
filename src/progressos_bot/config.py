@@ -18,6 +18,17 @@ class Settings(BaseSettings):
     telegram_allowed_user_ids: str = ""
     telegram_revoked_user_ids: str = ""
     telegram_progressos_user_map: str = ""
+    telegram_run_mode: Literal["polling", "webhook"] = "polling"
+    telegram_webhook_url: AnyHttpUrl | None = None
+    telegram_webhook_path: str = Field(
+        default="/telegram/webhook",
+        pattern=r"^/[A-Za-z0-9/_-]+$",
+    )
+    telegram_webhook_secret: str = ""
+    webhook_host: str = "127.0.0.1"
+    webhook_port: int = Field(default=8080, ge=1, le=65535)
+    health_path: str = Field(default="/health", pattern=r"^/[A-Za-z0-9/_-]+$")
+    readiness_path: str = Field(default="/ready", pattern=r"^/[A-Za-z0-9/_-]+$")
     confirmation_ttl_seconds: int = Field(default=900, gt=0)
     pending_store_path: str = ""
     retry_queue_path: str = ""

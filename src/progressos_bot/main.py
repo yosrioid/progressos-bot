@@ -1,18 +1,22 @@
+import asyncio
+
 from progressos_bot.ai.groq_client import GroqParserClient
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
-from progressos_bot.config import get_settings
+from progressos_bot.config import Settings, get_settings
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
 from progressos_bot.pending import SQLitePendingActionStore
 from progressos_bot.progressos_client import ProgressOSClient
 from progressos_bot.retry_queue import SQLiteRetryQueue
+from progressos_bot.webhook import (
+    TelegramWebhookServer,
+    WebhookServerConfig,
+    run_webhook_application,
+)
 
 
-def main() -> None:
-    settings = get_settings()
-    configure_logging(settings.log_level, log_format=settings.log_format)
-
+def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
     groq = GroqParserClient(api_key=settings.groq_api_key, model=settings.groq_model)
     parser = MessageParser(groq=groq, min_confidence=settings.ai_min_confidence)
     retry_queue = None
@@ -35,7 +39,7 @@ def main() -> None:
             ttl_seconds=settings.confirmation_ttl_seconds,
         )
 
-    bot = ProgressOSTelegramBot(
+    return ProgressOSTelegramBot(
         token=settings.telegram_bot_token,
         parser=parser,
         progressos=progressos,
@@ -47,7 +51,45 @@ def main() -> None:
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
         pending_store=pending_store,
     )
-    bot.build_application().run_polling()
+
+
+def run_polling(settings: Settings) -> None:
+    build_telegram_bot(settings).build_application().run_polling()
+
+
+def run_webhook(settings: Settings) -> None:
+    application = build_telegram_bot(settings).build_application()
+    server = TelegramWebhookServer(
+        config=WebhookServerConfig(
+            host=settings.webhook_host,
+            port=settings.webhook_port,
+            webhook_path=settings.telegram_webhook_path,
+            health_path=settings.health_path,
+            readiness_path=settings.readiness_path,
+            webhook_secret=settings.telegram_webhook_secret,
+        ),
+        application=application,
+    )
+    webhook_url = str(settings.telegram_webhook_url) if settings.telegram_webhook_url else None
+    asyncio.run(
+        run_webhook_application(
+            application=application,
+            server=server,
+            webhook_url=webhook_url,
+            webhook_secret=settings.telegram_webhook_secret,
+        )
+    )
+
+
+def main() -> None:
+    settings = get_settings()
+    configure_logging(settings.log_level, log_format=settings.log_format)
+
+    if settings.telegram_run_mode == "webhook":
+        run_webhook(settings)
+        return
+
+    run_polling(settings)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,23 @@ Run:
 make run
 ```
 
+Local development uses Telegram polling by default. For webhook deployment, set:
+
+```env
+TELEGRAM_RUN_MODE=webhook
+TELEGRAM_WEBHOOK_URL=https://example.com/telegram/webhook
+TELEGRAM_WEBHOOK_PATH=/telegram/webhook
+TELEGRAM_WEBHOOK_SECRET=change-me
+WEBHOOK_HOST=0.0.0.0
+WEBHOOK_PORT=8080
+HEALTH_PATH=/health
+READINESS_PATH=/ready
+```
+
+Webhook mode exposes `HEALTH_PATH` and `READINESS_PATH` without secrets or debug data.
+When `TELEGRAM_WEBHOOK_URL` is set, startup registers that URL with Telegram and sends
+`TELEGRAM_WEBHOOK_SECRET` as Telegram's webhook secret token.
+
 Verify:
 
 ```bash
@@ -96,6 +113,7 @@ Unsupported or ambiguous messages must produce `unsupported`, not a guessed acti
 - [AI contract](docs/AI_CONTRACT.md)
 - [Product phases](docs/PHASES.md)
 - [Python engineering guide](docs/PYTHON_ENGINEERING_GUIDE.md)
+- [Deployment notes](docs/DEPLOYMENT.md)
 - [ProgressOS API research](docs/PROGRESSOS_API_RESEARCH.md)
 - [ProgressOS API contract](docs/PROGRESSOS_API_CONTRACT.md)
 - [Security notes](docs/SECURITY.md)
