@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
+from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.identity import (
     ChannelUserIdentity,
     TelegramAllowlist,
@@ -26,7 +27,6 @@ from progressos_bot.progressos_client import (
     ProgressOSTransientError,
     ProgressOSValidationError,
 )
-from progressos_bot.schemas import ProgressOSActionRequest
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +43,16 @@ class ProgressOSTelegramBot:
         pending_store: PendingActionStore | None = None,
     ) -> None:
         self._token = token
-        self._parser = parser
         self._progressos = progressos
         self._authorizer = authorizer
         self._user_map = user_map
-        self._pending = pending_store or InMemoryPendingActionStore(
+        pending = pending_store or InMemoryPendingActionStore(
             ttl_seconds=confirmation_ttl_seconds
+        )
+        self._capture_flow = CaptureFlow(
+            parser=parser,
+            progressos=progressos,
+            pending=pending,
         )
 
     def build_application(self) -> Any:
@@ -82,7 +86,7 @@ class ProgressOSTelegramBot:
             return
         if not await self._authorize_message(update):
             return
-        self._pending.discard(str(update.effective_user.id))
+        self._capture_flow.cancel_capture(user_key=str(update.effective_user.id))
         await update.message.reply_text("Draft dibatalkan.")
 
     async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -250,18 +254,18 @@ class ProgressOSTelegramBot:
         await update.message.reply_text("Memproses input...")
 
         try:
-            action = await self._parser.parse(original_text)
+            draft = await self._capture_flow.begin_capture(
+                user_key=str(update.effective_user.id),
+                original_text=original_text,
+            )
         except Exception as exc:
             logger.exception("Failed to parse Telegram message")
             await update.message.reply_text(f"Input belum bisa diproses: {exc}")
             return
 
-        if action.intent == "unsupported":
-            await update.message.reply_text(action.user_confirmation_text)
+        if draft.status == "unsupported":
+            await update.message.reply_text(draft.user_message)
             return
-
-        user_key = str(update.effective_user.id)
-        self._pending.put(user_key, original_text, action)
 
         keyboard = InlineKeyboardMarkup(
             [
@@ -271,7 +275,7 @@ class ProgressOSTelegramBot:
                 ]
             ]
         )
-        await update.message.reply_text(action.user_confirmation_text, reply_markup=keyboard)
+        await update.message.reply_text(draft.user_message, reply_markup=keyboard)
 
     async def _handle_confirmation(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -295,33 +299,22 @@ class ProgressOSTelegramBot:
         user_key = str(update.effective_user.id)
 
         if query.data == "cancel":
-            self._pending.discard(user_key)
+            self._capture_flow.cancel_capture(user_key=user_key)
             await query.edit_message_text("Draft dibatalkan.")
             return
-
-        pending = self._pending.pop(user_key)
-        if pending is None:
-            await query.edit_message_text("Tidak ada draft aktif atau draft sudah kedaluwarsa.")
-            return
-
-        original_text = pending.original_text
-        action = pending.parsed_action
         try:
             progressos_user_id = self._user_map.resolve(identity)
         except UserMappingError as exc:
             await query.edit_message_text(str(exc))
             return
 
-        request = ProgressOSActionRequest(
-            source_user_id=str(update.effective_user.id),
-            source_chat_id=str(update.effective_chat.id),
-            progressos_user_id=progressos_user_id,
-            original_text=original_text,
-            parsed_action=action,
-        )
-
         try:
-            response = await self._progressos.submit_action(request)
+            result = await self._capture_flow.submit_confirmed_capture(
+                user_key=user_key,
+                source_user_id=str(update.effective_user.id),
+                source_chat_id=str(update.effective_chat.id),
+                progressos_user_id=progressos_user_id,
+            )
         except ProgressOSValidationError as exc:
             logger.info("ProgressOS rejected action validation")
             await query.edit_message_text(f"ProgressOS menolak input: {exc.response.message}")
@@ -339,7 +332,11 @@ class ProgressOSTelegramBot:
             await query.edit_message_text(f"Gagal mengirim ke ProgressOS: {exc}")
             return
 
-        await query.edit_message_text(f"ProgressOS: {response.to_user_message()}")
+        if not result.submitted:
+            await query.edit_message_text(result.user_message)
+            return
+
+        await query.edit_message_text(f"ProgressOS: {result.user_message}")
 
     async def _authorize_message(self, update: Update) -> bool:
         if update.message is None:
