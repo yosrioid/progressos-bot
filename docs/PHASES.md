@@ -320,7 +320,7 @@ Acceptance criteria:
 
 ## Phase 8: Multi-Channel Core
 
-Status: planned.
+Status: in progress.
 
 Goal: add new channel adapters without duplicating parser, validation, or ProgressOS client
 logic.
@@ -334,11 +334,11 @@ Candidate channels:
 
 Required abstractions:
 
-- `ChannelMessage`
-- `ChannelUser`
-- `ConfirmationRequest`
-- `ConfirmationDecision`
-- `ChannelAdapter`
+- `ChannelMessage` - implemented.
+- `ChannelUser` - implemented.
+- `ConfirmationRequest` - implemented.
+- `ConfirmationDecision` - implemented.
+- `ChannelAdapter` - implemented.
 
 Rules:
 
