@@ -2,6 +2,7 @@ from progressos_bot.ai.groq_client import GroqParserClient
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.config import get_settings
+from progressos_bot.identity import TelegramAllowlist
 from progressos_bot.logging import configure_logging
 from progressos_bot.progressos_client import ProgressOSClient
 
@@ -23,10 +24,10 @@ def main() -> None:
         token=settings.telegram_bot_token,
         parser=parser,
         progressos=progressos,
+        authorizer=TelegramAllowlist.from_csv(settings.telegram_allowed_user_ids),
     )
     bot.build_application().run_polling()
 
 
 if __name__ == "__main__":
     main()
-

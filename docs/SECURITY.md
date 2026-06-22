@@ -14,6 +14,10 @@ Never commit `.env`.
 
 The first version uses a single ProgressOS API token. Before production use, ProgressOS should map channel user IDs to ProgressOS users and enforce permissions server-side.
 
+Telegram access is bootstrapped with `TELEGRAM_ALLOWED_USER_IDS`, a comma-separated list
+of stable Telegram user IDs. An empty allowlist rejects all Telegram users. Display names
+are never trusted for authorization.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.

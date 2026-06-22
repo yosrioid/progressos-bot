@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
+from progressos_bot.identity import ChannelUserIdentity, TelegramAllowlist, UserAuthorizationError
 from progressos_bot.progressos_client import (
     ProgressOSClient,
     ProgressOSClientError,
@@ -31,10 +32,12 @@ class ProgressOSTelegramBot:
         token: str,
         parser: MessageParser,
         progressos: ProgressOSClient,
+        authorizer: TelegramAllowlist,
     ) -> None:
         self._token = token
         self._parser = parser
         self._progressos = progressos
+        self._authorizer = authorizer
         self._pending: PendingActions = {}
 
     def build_application(self) -> Any:
@@ -55,6 +58,8 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
+        if not await self._authorize_message(update):
+            return
         await update.message.reply_text(
             "Kirim instruksi singkat. "
             "Saya akan ubah menjadi payload ProgressOS dan minta konfirmasi."
@@ -64,12 +69,16 @@ class ProgressOSTelegramBot:
         del context
         if update.effective_user is None or update.message is None:
             return
+        if not await self._authorize_message(update):
+            return
         self._pending.pop(str(update.effective_user.id), None)
         await update.message.reply_text("Draft dibatalkan.")
 
     async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
         if update.message is None:
+            return
+        if not await self._authorize_message(update):
             return
 
         try:
@@ -93,6 +102,8 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
+        if not await self._authorize_message(update):
+            return
 
         try:
             response = await self._progressos.get_dashboard()
@@ -113,6 +124,8 @@ class ProgressOSTelegramBot:
 
     async def _handle_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message is None:
+            return
+        if not await self._authorize_message(update):
             return
 
         args = context.args or []
@@ -145,6 +158,8 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
+        if not await self._authorize_message(update):
+            return
 
         try:
             response = await self._progressos.get_overdue()
@@ -166,6 +181,8 @@ class ProgressOSTelegramBot:
     async def _handle_kanban(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
         if update.message is None:
+            return
+        if not await self._authorize_message(update):
             return
 
         try:
@@ -191,6 +208,8 @@ class ProgressOSTelegramBot:
         del context
         if update.message is None:
             return
+        if not await self._authorize_message(update):
+            return
 
         try:
             response = await self._progressos.get_learning_stats()
@@ -212,6 +231,8 @@ class ProgressOSTelegramBot:
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
         if update.message is None or update.effective_user is None:
+            return
+        if not await self._authorize_message(update):
             return
 
         original_text = update.message.text or ""
@@ -250,6 +271,17 @@ class ProgressOSTelegramBot:
             return
 
         await query.answer()
+        try:
+            self._authorizer.require_authorized(
+                ChannelUserIdentity(
+                    channel="telegram",
+                    channel_user_id=str(update.effective_user.id),
+                )
+            )
+        except UserAuthorizationError as exc:
+            await query.edit_message_text(str(exc))
+            return
+
         user_key = str(update.effective_user.id)
 
         if query.data == "cancel":
@@ -290,3 +322,21 @@ class ProgressOSTelegramBot:
             return
 
         await query.edit_message_text(f"ProgressOS: {response.to_user_message()}")
+
+    async def _authorize_message(self, update: Update) -> bool:
+        if update.message is None:
+            return False
+        if update.effective_user is None:
+            await update.message.reply_text("Identitas Telegram tidak tersedia.")
+            return False
+
+        identity = ChannelUserIdentity(
+            channel="telegram",
+            channel_user_id=str(update.effective_user.id),
+        )
+        try:
+            self._authorizer.require_authorized(identity)
+        except UserAuthorizationError as exc:
+            await update.message.reply_text(str(exc))
+            return False
+        return True
