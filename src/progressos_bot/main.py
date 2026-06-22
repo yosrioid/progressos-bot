@@ -6,6 +6,7 @@ from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
 from progressos_bot.pending import SQLitePendingActionStore
 from progressos_bot.progressos_client import ProgressOSClient
+from progressos_bot.retry_queue import SQLiteRetryQueue
 
 
 def main() -> None:
@@ -14,11 +15,15 @@ def main() -> None:
 
     groq = GroqParserClient(api_key=settings.groq_api_key, model=settings.groq_model)
     parser = MessageParser(groq=groq, min_confidence=settings.ai_min_confidence)
+    retry_queue = None
+    if settings.retry_queue_path:
+        retry_queue = SQLiteRetryQueue(path=settings.retry_queue_path)
     progressos = ProgressOSClient(
         base_url=str(settings.progressos_base_url),
         token=settings.progressos_api_token,
         endpoint=settings.progressos_assistant_endpoint,
         timeout_seconds=settings.http_timeout_seconds,
+        retry_queue=retry_queue,
     )
     pending_store = None
     if settings.pending_store_path:

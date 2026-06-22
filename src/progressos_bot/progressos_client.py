@@ -1,9 +1,11 @@
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import httpx
 
+from progressos_bot.retry_queue import QueuedProgressOSSubmission, RetryQueue
 from progressos_bot.schemas import (
     CaptureLearningPayload,
     CreateBlockerPayload,
@@ -22,6 +24,8 @@ from progressos_bot.schemas import (
     ProgressOSSubmissionAudit,
     ProgressOSValidationErrorResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProgressOSClientError(RuntimeError):
@@ -50,6 +54,7 @@ class ProgressOSClient:
         max_attempts: int = 2,
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], datetime] | None = None,
+        retry_queue: RetryQueue | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._endpoint = endpoint if endpoint.startswith("/") else f"/{endpoint}"
@@ -63,6 +68,7 @@ class ProgressOSClient:
         self._max_attempts = max(1, max_attempts)
         self._transport = transport
         self._clock = clock or self._utc_now
+        self._retry_queue = retry_queue
 
     async def submit_action(self, request: ProgressOSActionRequest) -> ProgressOSActionResponse:
         idempotency_key = self._idempotency_key_factory()
@@ -89,6 +95,12 @@ class ProgressOSClient:
                 except (httpx.TimeoutException, httpx.NetworkError) as exc:
                     last_error = exc
                     if attempt == self._max_attempts:
+                        self._enqueue_retry(
+                            quick_capture=quick_capture,
+                            idempotency_key=idempotency_key,
+                            attempt_count=attempt,
+                            last_error=exc.__class__.__name__,
+                        )
                         raise ProgressOSTransientError(
                             "ProgressOS belum bisa dihubungi. Coba lagi sebentar."
                         ) from exc
@@ -100,6 +112,12 @@ class ProgressOSClient:
 
                 if response.status_code >= 500:
                     if attempt == self._max_attempts:
+                        self._enqueue_retry(
+                            quick_capture=quick_capture,
+                            idempotency_key=idempotency_key,
+                            attempt_count=attempt,
+                            last_error=f"HTTP {response.status_code}",
+                        )
                         raise ProgressOSTransientError(
                             "ProgressOS sedang bermasalah. Coba lagi sebentar."
                         )
@@ -397,6 +415,30 @@ class ProgressOSClient:
     @staticmethod
     def _new_idempotency_key() -> str:
         return str(uuid4())
+
+    def _enqueue_retry(
+        self,
+        *,
+        quick_capture: ProgressOSQuickCaptureRequest,
+        idempotency_key: str,
+        attempt_count: int,
+        last_error: str,
+    ) -> None:
+        if self._retry_queue is None:
+            return
+
+        try:
+            self._retry_queue.enqueue(
+                QueuedProgressOSSubmission(
+                    idempotency_key=idempotency_key,
+                    quick_capture=quick_capture,
+                    queued_at=self._clock(),
+                    attempt_count=attempt_count,
+                    last_error=last_error,
+                )
+            )
+        except Exception:
+            logger.warning("Failed to enqueue retryable ProgressOS submission")
 
     @staticmethod
     def _utc_now() -> datetime:

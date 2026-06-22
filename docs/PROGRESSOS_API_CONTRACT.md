@@ -46,6 +46,10 @@ Optional fields:
 
 Use `Idempotency-Key` for retries.
 
+When `RETRY_QUEUE_PATH` is configured and transient quick-capture retries are exhausted,
+the bot stores the quick-capture payload with the same idempotency key for later delivery.
+Validation errors are not queued.
+
 ## Current Bot Mapping
 
 The Telegram flow stores a confirmed `ProgressOSActionRequest` internally, then maps it to

@@ -273,7 +273,7 @@ Features:
 - Persistent pending action store - implemented with optional SQLite `PENDING_STORE_PATH`.
 - Confirmation expiry - implemented through `CONFIRMATION_TTL_SECONDS`.
 - Rehydration after restart - implemented for SQLite pending confirmations.
-- Idempotency-aware retry queue.
+- Idempotency-aware retry queue - implemented with optional SQLite `RETRY_QUEUE_PATH`.
 - Dead-letter handling for repeated failures.
 - Structured operational logs.
 
