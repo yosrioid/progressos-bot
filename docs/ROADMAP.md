@@ -10,19 +10,17 @@ Current focus:
 
 - Make pending confirmations safer and restart-aware.
 - Expire stale confirmation drafts before submit.
-- Add persistent pending action storage.
+- Persist pending confirmations when configured.
 - Keep idempotent writes recoverable.
 - CI-gated Phase 6 slices.
 
 ## Next Milestones
 
-1. Add persistent pending action store.
-2. Add pending action rehydration after restart.
-3. Add idempotency-aware retry queue.
-4. Add dead-letter handling for repeated failures.
-5. Add structured operational logs.
-6. Move identity mapping server-side when ProgressOS exposes it.
-7. Extract channel-neutral core services before adding another channel.
+1. Add idempotency-aware retry queue.
+2. Add dead-letter handling for repeated failures.
+3. Add structured operational logs.
+4. Move identity mapping server-side when ProgressOS exposes it.
+5. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 

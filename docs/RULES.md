@@ -76,6 +76,7 @@ Reject the AI result when:
 9. Confirmed writes require a Telegram-to-ProgressOS user mapping.
 10. Confirmed writes must include source identity, parser summary, submit timestamp, and idempotency key in audit notes.
 11. Pending confirmations expire after `CONFIRMATION_TTL_SECONDS`.
+12. Pending confirmations persist across restarts only when `PENDING_STORE_PATH` is configured.
 
 ## ProgressOS Integration Rules
 

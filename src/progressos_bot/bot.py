@@ -19,7 +19,7 @@ from progressos_bot.identity import (
     UserAuthorizationError,
     UserMappingError,
 )
-from progressos_bot.pending import InMemoryPendingActionStore
+from progressos_bot.pending import InMemoryPendingActionStore, PendingActionStore
 from progressos_bot.progressos_client import (
     ProgressOSClient,
     ProgressOSClientError,
@@ -40,7 +40,7 @@ class ProgressOSTelegramBot:
         authorizer: TelegramAllowlist,
         user_map: TelegramProgressOSUserMap,
         confirmation_ttl_seconds: int = 900,
-        pending_store: InMemoryPendingActionStore | None = None,
+        pending_store: PendingActionStore | None = None,
     ) -> None:
         self._token = token
         self._parser = parser

@@ -12,3 +12,6 @@ build/
 *.egg-info/
 .DS_Store
 logs/
+*.sqlite
+*.sqlite3
+*.db
