@@ -244,6 +244,7 @@ Features:
 - Admin-only allowlist bootstrap - implemented through `TELEGRAM_ALLOWED_USER_IDS`.
 - Revocation flow - implemented through `TELEGRAM_REVOKED_USER_IDS`.
 - Audit metadata on submitted actions - implemented in quick-capture notes.
+- Per-user identity checks for read commands - implemented through Telegram-to-ProgressOS mapping.
 
 Security requirements:
 
@@ -257,6 +258,7 @@ Acceptance criteria:
 
 - Unknown Telegram user cannot submit actions.
 - Revoked user cannot submit actions.
+- Unmapped Telegram user cannot run read commands.
 - Authorized user actions are attributed to the correct ProgressOS user.
 - Tests cover allowed, unknown, revoked, and malformed identity states.
 

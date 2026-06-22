@@ -23,8 +23,8 @@ of stable Telegram user IDs. Revoked IDs are rejected even when they still appea
 allowlist.
 
 Telegram-to-ProgressOS attribution is bootstrapped with `TELEGRAM_PROGRESSOS_USER_MAP`.
-Use comma-separated `telegram_user_id:progressos_user_id` pairs. The bot rejects confirmed
-write actions when the Telegram user is not mapped.
+Use comma-separated `telegram_user_id:progressos_user_id` pairs. The bot rejects read
+commands and confirmed write actions when the Telegram user is not mapped.
 
 Confirmed writes include audit notes with stable source IDs, mapped ProgressOS user ID,
 parser summary, submit timestamp, and idempotency key. Audit notes must not include bearer

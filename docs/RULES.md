@@ -72,8 +72,9 @@ Reject the AI result when:
 5. Only `Confirm` can call ProgressOS.
 6. `Cancel` discards the pending action.
 7. Telegram users must be allowed and not revoked by stable Telegram user ID before parser, read, or write flows run.
-8. Confirmed writes require a Telegram-to-ProgressOS user mapping.
-9. Confirmed writes must include source identity, parser summary, submit timestamp, and idempotency key in audit notes.
+8. Read commands require a Telegram-to-ProgressOS user mapping.
+9. Confirmed writes require a Telegram-to-ProgressOS user mapping.
+10. Confirmed writes must include source identity, parser summary, submit timestamp, and idempotency key in audit notes.
 
 ## ProgressOS Integration Rules
 

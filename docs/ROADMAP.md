@@ -16,9 +16,8 @@ Current focus:
 
 ## Next Milestones
 
-1. Harden per-user identity checks for read commands.
-2. Move identity mapping server-side when ProgressOS exposes it.
-3. Extract channel-neutral core services before adding another channel.
+1. Move identity mapping server-side when ProgressOS exposes it.
+2. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule
 
