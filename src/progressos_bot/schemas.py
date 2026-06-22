@@ -232,3 +232,53 @@ class ProgressOSStandupResponse(BaseModel):
         if len(self.items) > 10:
             lines.append(f"...dan {len(self.items) - 10} item lain.")
         return "\n".join([header, *lines])
+
+
+class ProgressOSDashboardItem(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    title: str | None = None
+    name: str | None = None
+    label: str | None = None
+    value: str | int | float | None = None
+    count: int | None = None
+
+    def to_user_line(self, index: int) -> str:
+        label = self.title or self.name or self.label or "Metric"
+        value = self.value if self.value is not None else self.count
+        if value is None:
+            return f"{index}. {label}"
+        return f"{index}. {label}: {value}"
+
+
+class ProgressOSDashboardResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    message: str | None = None
+    items: list[ProgressOSDashboardItem] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_items(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or "items" in data:
+            return data
+
+        raw_data = data.get("data")
+        if isinstance(raw_data, list):
+            return {**data, "items": raw_data}
+
+        metrics = data.get("metrics")
+        if isinstance(metrics, list):
+            return {**data, "items": metrics}
+
+        return data
+
+    def to_user_message(self) -> str:
+        if not self.items:
+            return self.message or "Tidak ada ringkasan dashboard."
+
+        header = self.message or "Dashboard:"
+        lines = [item.to_user_line(index) for index, item in enumerate(self.items[:10], start=1)]
+        if len(self.items) > 10:
+            lines.append(f"...dan {len(self.items) - 10} metrik lain.")
+        return "\n".join([header, *lines])

@@ -209,7 +209,7 @@ Goal: let users ask ProgressOS for read-only status summaries without changing d
 Commands:
 
 - `/standup` - implemented.
-- `/dashboard`
+- `/dashboard` - implemented.
 - `/search <query>`
 - `/overdue`
 - `/kanban`
