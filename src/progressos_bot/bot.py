@@ -15,6 +15,7 @@ from progressos_bot.ai.parser import MessageParser
 from progressos_bot.core.admin import AdminInfoService
 from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.core.identity import CaptureIdentityService
+from progressos_bot.core.rate_limit import NoopRateLimiter, RateLimiter
 from progressos_bot.core.read_commands import ReadCommandFlow
 from progressos_bot.identity import (
     ChannelUserIdentity,
@@ -43,6 +44,7 @@ class ProgressOSTelegramBot:
         authorizer: TelegramAllowlist,
         user_map: TelegramProgressOSUserMap,
         admin_info: AdminInfoService,
+        rate_limiter: RateLimiter | None = None,
         confirmation_ttl_seconds: int = 900,
         pending_store: PendingActionStore | None = None,
     ) -> None:
@@ -51,6 +53,7 @@ class ProgressOSTelegramBot:
         self._authorizer = authorizer
         self._user_map = user_map
         self._admin_info = admin_info
+        self._rate_limiter = rate_limiter or NoopRateLimiter()
         self._identity = CaptureIdentityService(
             authorizer=authorizer,
             progressos_user_resolver=user_map,
@@ -278,6 +281,11 @@ class ProgressOSTelegramBot:
         if update.message is None or update.effective_user is None:
             return
         if not await self._authorize_message(update):
+            return
+
+        rate_limit = self._rate_limiter.check(str(update.effective_user.id))
+        if not rate_limit.allowed:
+            await update.message.reply_text(rate_limit.to_user_message())
             return
 
         original_text = update.message.text or ""

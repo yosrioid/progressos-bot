@@ -5,6 +5,7 @@ from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.config import Settings, get_settings
 from progressos_bot.core.admin import AdminInfoService, ConfigurationDiagnostics, VersionInfo
+from progressos_bot.core.rate_limit import InMemoryRateLimiter
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
 from progressos_bot.pending import SQLitePendingActionStore
@@ -68,6 +69,10 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
                 user_map_configured=bool(settings.telegram_progressos_user_map.strip()),
                 webhook_secret_configured=bool(settings.telegram_webhook_secret),
             ),
+        ),
+        rate_limiter=InMemoryRateLimiter(
+            max_requests=settings.rate_limit_max_requests,
+            window_seconds=settings.rate_limit_window_seconds,
         ),
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
         pending_store=pending_store,

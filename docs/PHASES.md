@@ -392,7 +392,7 @@ Goal: make the system dependable for real daily use.
 
 Features:
 
-- Rate limiting.
+- Rate limiting - implemented for capture input before parser calls.
 - Abuse prevention.
 - Prompt injection test cases.
 - Language normalization for Indonesian and English.
