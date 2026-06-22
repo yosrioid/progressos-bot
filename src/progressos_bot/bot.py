@@ -76,6 +76,7 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("kanban", self._handle_kanban))
         app.add_handler(CommandHandler("learning_stats", self._handle_learning_stats))
         app.add_handler(CommandHandler("version", self._handle_version))
+        app.add_handler(CommandHandler("diagnostics", self._handle_diagnostics))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -107,6 +108,16 @@ class ProgressOSTelegramBot:
         if not await self._authorize_message(update):
             return
         await update.message.reply_text(self._admin_info.version().to_user_message())
+
+    async def _handle_diagnostics(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        del context
+        if update.message is None:
+            return
+        if not await self._authorize_message(update):
+            return
+        await update.message.reply_text(self._admin_info.diagnostics().to_user_message())
 
     async def _handle_standup(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context

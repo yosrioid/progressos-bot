@@ -1,7 +1,7 @@
 import pytest
 
 from progressos_bot.bot import ProgressOSTelegramBot
-from progressos_bot.core.admin import AdminInfoService, VersionInfo
+from progressos_bot.core.admin import AdminInfoService, ConfigurationDiagnostics, VersionInfo
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 
 
@@ -37,13 +37,23 @@ def make_bot(
         authorizer=TelegramAllowlist.from_csv(allowed, revoked_value=revoked),
         user_map=TelegramProgressOSUserMap.from_csv(mappings),
         admin_info=AdminInfoService(
-            VersionInfo(
+            version_info=VersionInfo(
                 app_name="progressos-bot",
                 app_version="0.1.0",
                 app_env="local",
                 run_mode="polling",
                 log_format="text",
-            )
+            ),
+            diagnostics=ConfigurationDiagnostics(
+                app_env="local",
+                run_mode="polling",
+                log_format="text",
+                pending_store_enabled=False,
+                retry_queue_enabled=False,
+                allowlist_configured=bool(allowed),
+                user_map_configured=bool(mappings),
+                webhook_secret_configured=False,
+            ),
         ),
     )
 
