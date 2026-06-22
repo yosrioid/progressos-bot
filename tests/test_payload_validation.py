@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from progressos_bot.schemas import ParsedAction
+from progressos_bot.schemas import ParsedAction, ProgressOSActionRequest
 
 
 def test_create_task_payload_is_valid() -> None:
@@ -22,6 +22,34 @@ def test_create_task_payload_is_valid() -> None:
 
     assert action.intent == "create_task"
     assert action.payload.title == "Follow up invoice client A"
+
+
+def test_progressos_action_request_accepts_non_telegram_source() -> None:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "create_task",
+            "confidence": 0.91,
+            "language": "id",
+            "payload": {
+                "title": "Review CLI adapter",
+                "description": None,
+                "due_date": None,
+                "priority": "medium",
+            },
+            "user_confirmation_text": "Buat task Review CLI adapter?",
+        }
+    )
+
+    request = ProgressOSActionRequest(
+        source="cli",
+        source_user_id="admin-1",
+        source_chat_id="local-cli",
+        progressos_user_id="77",
+        original_text="buat task review CLI adapter",
+        parsed_action=action,
+    )
+
+    assert request.source == "cli"
 
 
 def test_create_blocker_payload_is_valid() -> None:
