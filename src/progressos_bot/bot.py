@@ -12,7 +12,12 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
-from progressos_bot.progressos_client import ProgressOSClient
+from progressos_bot.progressos_client import (
+    ProgressOSClient,
+    ProgressOSClientError,
+    ProgressOSTransientError,
+    ProgressOSValidationError,
+)
 from progressos_bot.schemas import ParsedAction, ProgressOSActionRequest
 
 logger = logging.getLogger(__name__)
@@ -119,6 +124,18 @@ class ProgressOSTelegramBot:
 
         try:
             response = await self._progressos.submit_action(request)
+        except ProgressOSValidationError as exc:
+            logger.info("ProgressOS rejected action validation")
+            await query.edit_message_text(f"ProgressOS menolak input: {exc.response.message}")
+            return
+        except ProgressOSTransientError as exc:
+            logger.warning("Transient ProgressOS failure")
+            await query.edit_message_text(str(exc))
+            return
+        except ProgressOSClientError as exc:
+            logger.warning("ProgressOS client failure")
+            await query.edit_message_text(str(exc))
+            return
         except Exception as exc:
             logger.exception("Failed to submit action to ProgressOS")
             await query.edit_message_text(f"Gagal mengirim ke ProgressOS: {exc}")

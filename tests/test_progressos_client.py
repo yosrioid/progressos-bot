@@ -1,0 +1,173 @@
+import json
+
+import httpx
+import pytest
+
+from progressos_bot.progressos_client import (
+    ProgressOSClient,
+    ProgressOSTransientError,
+    ProgressOSValidationError,
+)
+from progressos_bot.schemas import ParsedAction, ProgressOSActionRequest
+
+
+def make_action_request() -> ProgressOSActionRequest:
+    action = ParsedAction.model_validate(
+        {
+            "intent": "create_task",
+            "confidence": 0.91,
+            "language": "id",
+            "payload": {
+                "title": "Follow up invoice client A",
+                "description": "Kirim invoice ulang",
+                "due_date": "2026-06-21",
+                "priority": "high",
+            },
+            "user_confirmation_text": "Buat task Follow up invoice client A?",
+        }
+    )
+    return ProgressOSActionRequest(
+        source_user_id="123",
+        source_chat_id="456",
+        original_text="buat task follow up invoice client A besok",
+        parsed_action=action,
+    )
+
+
+@pytest.mark.asyncio
+async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Captured.",
+                "record": {"id": 42, "title": "Follow up invoice client A"},
+                "record_path": "/tasks/42",
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_action_request())
+
+    assert response.message == "Captured."
+    assert response.record == {"id": 42, "title": "Follow up invoice client A"}
+    assert response.record_path == "/tasks/42"
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert request.headers["Idempotency-Key"] == "fixed-key"
+    assert request.url.path == "/api/v1/quick-capture"
+    payload = json.loads(request.content)
+    assert payload["type"] == "task"
+    assert payload["title"] == "Follow up invoice client A"
+    assert payload["date"] == "2026-06-21"
+    assert "Original message: buat task follow up invoice client A besok" in payload["notes"]
+    assert request.headers["Content-Type"] == "application/json"
+
+
+def test_build_quick_capture_request_maps_confirmed_task() -> None:
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+    )
+
+    quick_capture = client.build_quick_capture_request(make_action_request())
+
+    assert quick_capture.type == "task"
+    assert quick_capture.title == "Follow up invoice client A"
+    assert quick_capture.date is not None
+    assert quick_capture.notes is not None
+    assert "Original message: buat task follow up invoice client A besok" in quick_capture.notes
+    assert "Description: Kirim invoice ulang" in quick_capture.notes
+
+
+@pytest.mark.asyncio
+async def test_submit_action_raises_validation_error_for_laravel_422() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["Idempotency-Key"] == "fixed-key"
+        return httpx.Response(
+            422,
+            json={
+                "message": "Validation failed",
+                "errors": {"title": ["The title field is required."]},
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSValidationError) as exc_info:
+        await client.submit_action(make_action_request())
+
+    assert exc_info.value.response.message == "Validation failed"
+    assert exc_info.value.response.errors["title"] == ["The title field is required."]
+
+
+@pytest.mark.asyncio
+async def test_submit_action_retries_transient_server_errors_with_same_idempotency_key() -> None:
+    seen_keys: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_keys.append(request.headers["Idempotency-Key"])
+        if len(seen_keys) == 1:
+            return httpx.Response(503, json={"message": "Temporary failure"})
+        return httpx.Response(200, json={"message": "Captured."})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        max_attempts=2,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.submit_action(make_action_request())
+
+    assert response.message == "Captured."
+    assert seen_keys == ["fixed-key", "fixed-key"]
+
+
+@pytest.mark.asyncio
+async def test_submit_action_raises_transient_error_after_timeout_retries() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        raise httpx.TimeoutException("timeout", request=request)
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        idempotency_key_factory=lambda: "fixed-key",
+        max_attempts=2,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.submit_action(make_action_request())
+
+    assert attempts == 2
