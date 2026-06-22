@@ -16,8 +16,8 @@ Current focus:
 
 ## Next Milestones
 
-1. Complete `create_blocker` and verify quick-capture blocker writes.
-2. Add `log_work`, `log_daily_progress`, and `capture_learning`.
+1. Add `log_daily_progress` and verify quick-capture daily-progress writes.
+2. Add `capture_learning` and verify quick-capture learning writes.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.
