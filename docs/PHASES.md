@@ -368,7 +368,7 @@ Features:
 - Request correlation IDs - implemented for core flow results and JSON logs.
 - Metrics for parse success, confirmation rate, submit success, and submit failure -
   implemented as core counters.
-- Admin command for version/build info.
+- Admin command for version/build info - implemented with `/version`.
 - Safe diagnostic command for configuration status.
 - Error reporting integration.
 

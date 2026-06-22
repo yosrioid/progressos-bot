@@ -57,6 +57,7 @@ progressos-bot/
         cli/
           adapter.py
       core/
+        admin.py
         capture_flow.py
         identity.py
         read_commands.py
@@ -69,6 +70,7 @@ progressos-bot/
       main.py
       progressos_client.py
       schemas.py
+      version.py
   tests/
     test_message_parser.py
     test_payload_validation.py

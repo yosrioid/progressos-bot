@@ -4,11 +4,13 @@ from progressos_bot.ai.groq_client import GroqParserClient
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.config import Settings, get_settings
+from progressos_bot.core.admin import AdminInfoService, VersionInfo
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
 from progressos_bot.pending import SQLitePendingActionStore
 from progressos_bot.progressos_client import ProgressOSClient
 from progressos_bot.retry_queue import SQLiteRetryQueue
+from progressos_bot.version import get_package_version
 from progressos_bot.webhook import (
     TelegramWebhookServer,
     WebhookServerConfig,
@@ -48,6 +50,15 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
             revoked_value=settings.telegram_revoked_user_ids,
         ),
         user_map=TelegramProgressOSUserMap.from_csv(settings.telegram_progressos_user_map),
+        admin_info=AdminInfoService(
+            VersionInfo(
+                app_name="progressos-bot",
+                app_version=get_package_version(),
+                app_env=settings.app_env,
+                run_mode=settings.telegram_run_mode,
+                log_format=settings.log_format,
+            )
+        ),
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
         pending_store=pending_store,
     )
