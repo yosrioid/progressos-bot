@@ -341,6 +341,7 @@ Required abstractions:
 - `ChannelAdapter` - implemented.
 - `CaptureFlow` core service - implemented for capture writes.
 - `CaptureIdentityService` core service - implemented for authorization and user mapping.
+- `ReadCommandFlow` core service - implemented for read-only ProgressOS commands.
 
 Rules:
 

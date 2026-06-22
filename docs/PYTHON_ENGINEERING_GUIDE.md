@@ -57,6 +57,7 @@ progressos-bot/
       core/
         capture_flow.py
         identity.py
+        read_commands.py
       bot.py
       config.py
       logging.py

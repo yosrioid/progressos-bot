@@ -14,6 +14,7 @@ from telegram.ext import (
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.core.identity import CaptureIdentityService
+from progressos_bot.core.read_commands import ReadCommandFlow
 from progressos_bot.identity import (
     ChannelUserIdentity,
     TelegramAllowlist,
@@ -51,6 +52,7 @@ class ProgressOSTelegramBot:
             authorizer=authorizer,
             progressos_user_resolver=user_map,
         )
+        self._read_flow = ReadCommandFlow(progressos=progressos)
         pending = pending_store or InMemoryPendingActionStore(
             ttl_seconds=confirmation_ttl_seconds
         )
@@ -102,7 +104,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.get_standup()
+            result = await self._read_flow.standup()
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS standup failure")
             await update.message.reply_text(str(exc))
@@ -116,7 +118,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mengambil standup: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_dashboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
@@ -126,7 +128,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.get_dashboard()
+            result = await self._read_flow.dashboard()
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS dashboard failure")
             await update.message.reply_text(str(exc))
@@ -140,7 +142,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mengambil dashboard: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_search(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if update.message is None:
@@ -158,7 +160,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.search(query)
+            result = await self._read_flow.search(query=query)
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS search failure")
             await update.message.reply_text(str(exc))
@@ -172,7 +174,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mencari di ProgressOS: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_overdue(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
@@ -182,7 +184,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.get_overdue()
+            result = await self._read_flow.overdue()
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS overdue failure")
             await update.message.reply_text(str(exc))
@@ -196,7 +198,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mengambil task overdue: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_kanban(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
@@ -206,7 +208,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.get_kanban()
+            result = await self._read_flow.kanban()
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS kanban failure")
             await update.message.reply_text(str(exc))
@@ -220,7 +222,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mengambil kanban: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_learning_stats(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -232,7 +234,7 @@ class ProgressOSTelegramBot:
             return
 
         try:
-            response = await self._progressos.get_learning_stats()
+            result = await self._read_flow.learning_stats()
         except ProgressOSTransientError as exc:
             logger.warning("Transient ProgressOS learning stats failure")
             await update.message.reply_text(str(exc))
@@ -246,7 +248,7 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(f"Gagal mengambil learning stats: {exc}")
             return
 
-        await update.message.reply_text(response.to_user_message())
+        await update.message.reply_text(result.user_message)
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         del context
