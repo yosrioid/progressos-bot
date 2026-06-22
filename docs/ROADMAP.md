@@ -4,22 +4,21 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 8: Multi-Channel Core.
+Phase 9: Observability And Admin Tools.
 
 Current focus:
 
-- Extract channel-neutral core contracts before adding another adapter.
-- Keep Telegram behavior passing through the extraction.
-- Move parsing, validation, confirmation state, and ProgressOS submission into reusable
-  services.
-- Add core-flow tests that do not depend on Telegram-specific classes.
+- Add request correlation IDs.
+- Add metrics for parse, confirmation, submit, and dependency failures.
+- Add safe admin diagnostics without exposing secrets.
+- Keep logging and diagnostic output secret-safe.
 
 ## Next Milestones
 
-1. Define channel-neutral message, user, confirmation, and adapter contracts.
-2. Extract reusable capture flow from the Telegram adapter.
-3. Rewire Telegram to use the shared core flow.
-4. Add non-Telegram core-flow tests.
+1. Add request correlation IDs across capture and read flows.
+2. Add metrics counters for key bot outcomes.
+3. Add a safe version/build info command.
+4. Add a safe configuration diagnostic command.
 5. Move identity mapping server-side when ProgressOS exposes it.
 
 ## Change Rule
