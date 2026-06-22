@@ -47,11 +47,12 @@ class FakeProgressOSReadClient:
 @pytest.mark.asyncio
 async def test_read_command_flow_returns_standup_message_without_telegram_classes() -> None:
     client = FakeProgressOSReadClient()
-    flow = ReadCommandFlow(progressos=client)
+    flow = ReadCommandFlow(progressos=client, correlation_id_factory=lambda: "corr-read")
 
     result = await flow.standup()
 
     assert result.user_message == "Standup kosong"
+    assert result.correlation_id == "corr-read"
     assert client.calls == ["standup"]
 
 
