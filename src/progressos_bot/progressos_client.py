@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import httpx
@@ -18,6 +19,7 @@ from progressos_bot.schemas import (
     ProgressOSQuickCaptureRequest,
     ProgressOSSearchResponse,
     ProgressOSStandupResponse,
+    ProgressOSSubmissionAudit,
     ProgressOSValidationErrorResponse,
 )
 
@@ -47,6 +49,7 @@ class ProgressOSClient:
         idempotency_key_factory: Callable[[], str] | None = None,
         max_attempts: int = 2,
         transport: httpx.AsyncBaseTransport | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._endpoint = endpoint if endpoint.startswith("/") else f"/{endpoint}"
@@ -59,10 +62,18 @@ class ProgressOSClient:
         self._idempotency_key_factory = idempotency_key_factory or self._new_idempotency_key
         self._max_attempts = max(1, max_attempts)
         self._transport = transport
+        self._clock = clock or self._utc_now
 
     async def submit_action(self, request: ProgressOSActionRequest) -> ProgressOSActionResponse:
-        quick_capture = self.build_quick_capture_request(request)
         idempotency_key = self._idempotency_key_factory()
+        audit_metadata = ProgressOSSubmissionAudit(
+            submitted_at=self._clock(),
+            idempotency_key=idempotency_key,
+        )
+        quick_capture = self.build_quick_capture_request(
+            request,
+            audit_metadata=audit_metadata,
+        )
         headers = {**self._headers, "Idempotency-Key": idempotency_key}
 
         async with httpx.AsyncClient(timeout=self._timeout, transport=self._transport) as client:
@@ -269,11 +280,18 @@ class ProgressOSClient:
             return ProgressOSLearningStatsResponse.model_validate(response.json())
 
     def build_quick_capture_request(
-        self, request: ProgressOSActionRequest
+        self,
+        request: ProgressOSActionRequest,
+        *,
+        audit_metadata: ProgressOSSubmissionAudit | None = None,
     ) -> ProgressOSQuickCaptureRequest:
         action = request.parsed_action
         if action.intent == "create_task" and isinstance(action.payload, CreateTaskPayload):
-            notes = self._build_notes(request, description=action.payload.description)
+            notes = self._build_notes(
+                request,
+                description=action.payload.description,
+                audit_metadata=audit_metadata,
+            )
             return ProgressOSQuickCaptureRequest(
                 type="task",
                 title=action.payload.title,
@@ -286,6 +304,7 @@ class ProgressOSClient:
                 request,
                 description=action.payload.description,
                 extra_parts=[f"Severity: {action.payload.severity}"],
+                audit_metadata=audit_metadata,
             )
             return ProgressOSQuickCaptureRequest(
                 type="blocker",
@@ -294,7 +313,11 @@ class ProgressOSClient:
             )
 
         if action.intent == "log_work" and isinstance(action.payload, LogWorkPayload):
-            notes = self._build_notes(request, description=action.payload.description)
+            notes = self._build_notes(
+                request,
+                description=action.payload.description,
+                audit_metadata=audit_metadata,
+            )
             return ProgressOSQuickCaptureRequest(
                 type="work_log",
                 title=action.payload.title,
@@ -307,7 +330,11 @@ class ProgressOSClient:
         if action.intent == "log_daily_progress" and isinstance(
             action.payload, LogDailyProgressPayload
         ):
-            notes = self._build_notes(request, description=action.payload.description)
+            notes = self._build_notes(
+                request,
+                description=action.payload.description,
+                audit_metadata=audit_metadata,
+            )
             return ProgressOSQuickCaptureRequest(
                 type="daily_progress",
                 title=action.payload.title,
@@ -319,7 +346,11 @@ class ProgressOSClient:
         if action.intent == "capture_learning" and isinstance(
             action.payload, CaptureLearningPayload
         ):
-            notes = self._build_notes(request, description=action.payload.description)
+            notes = self._build_notes(
+                request,
+                description=action.payload.description,
+                audit_metadata=audit_metadata,
+            )
             return ProgressOSQuickCaptureRequest(
                 type="learning",
                 title=action.payload.title,
@@ -336,15 +367,27 @@ class ProgressOSClient:
         *,
         description: str | None,
         extra_parts: list[str] | None = None,
+        audit_metadata: ProgressOSSubmissionAudit | None = None,
     ) -> str:
+        action = request.parsed_action
         parts = [
             f"Source: {request.source}",
             f"Source user: {request.source_user_id}",
             f"Source chat: {request.source_chat_id}",
             f"Original message: {request.original_text}",
+            f"Parsed intent: {action.intent}",
+            f"Parser confidence: {action.confidence}",
+            f"Parser language: {action.language}",
         ]
         if request.progressos_user_id:
             parts.append(f"ProgressOS user: {request.progressos_user_id}")
+        if audit_metadata:
+            parts.extend(
+                [
+                    f"Submitted at: {ProgressOSClient._format_utc(audit_metadata.submitted_at)}",
+                    f"Idempotency key: {audit_metadata.idempotency_key}",
+                ]
+            )
         if description:
             parts.append(f"Description: {description}")
         if extra_parts:
@@ -354,3 +397,13 @@ class ProgressOSClient:
     @staticmethod
     def _new_idempotency_key() -> str:
         return str(uuid4())
+
+    @staticmethod
+    def _utc_now() -> datetime:
+        return datetime.now(UTC)
+
+    @staticmethod
+    def _format_utc(value: datetime) -> str:
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")

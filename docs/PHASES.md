@@ -243,7 +243,7 @@ Features:
 - Authorization check before showing or submitting actions - implemented for Telegram allowlist.
 - Admin-only allowlist bootstrap - implemented through `TELEGRAM_ALLOWED_USER_IDS`.
 - Revocation flow - implemented through `TELEGRAM_REVOKED_USER_IDS`.
-- Audit metadata on submitted actions.
+- Audit metadata on submitted actions - implemented in quick-capture notes.
 
 Security requirements:
 

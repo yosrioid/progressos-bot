@@ -56,7 +56,9 @@ Current supported mapping:
 - `create_task` -> `type: "task"`
 - `payload.title` -> `title`
 - `payload.due_date` -> `date`
-- `original_text`, source channel, source user, source chat, and optional description -> `notes`
+- `original_text`, source channel, source user, source chat, mapped ProgressOS user,
+  parser intent, parser confidence, parser language, submitted timestamp, idempotency key,
+  and optional description -> `notes`
 - `create_blocker` -> `type: "blocker"`
 - `payload.severity` -> `notes`
 - `log_work` -> `type: "work_log"`

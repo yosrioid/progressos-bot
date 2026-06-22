@@ -26,6 +26,10 @@ Telegram-to-ProgressOS attribution is bootstrapped with `TELEGRAM_PROGRESSOS_USE
 Use comma-separated `telegram_user_id:progressos_user_id` pairs. The bot rejects confirmed
 write actions when the Telegram user is not mapped.
 
+Confirmed writes include audit notes with stable source IDs, mapped ProgressOS user ID,
+parser summary, submit timestamp, and idempotency key. Audit notes must not include bearer
+tokens, raw request headers, or `.env` values.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
