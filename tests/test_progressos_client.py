@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 
 import httpx
 import pytest
@@ -150,6 +151,7 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
         timeout_seconds=5,
         idempotency_key_factory=lambda: "fixed-key",
         transport=httpx.MockTransport(handler),
+        clock=lambda: datetime(2026, 6, 22, 9, 5, 0, tzinfo=UTC),
     )
 
     response = await client.submit_action(make_action_request())
@@ -169,6 +171,11 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
     assert payload["date"] == "2026-06-21"
     assert "Original message: buat task follow up invoice client A besok" in payload["notes"]
     assert "ProgressOS user: 77" in payload["notes"]
+    assert "Parsed intent: create_task" in payload["notes"]
+    assert "Parser confidence: 0.91" in payload["notes"]
+    assert "Parser language: id" in payload["notes"]
+    assert "Submitted at: 2026-06-22T09:05:00Z" in payload["notes"]
+    assert "Idempotency key: fixed-key" in payload["notes"]
     assert request.headers["Content-Type"] == "application/json"
 
 

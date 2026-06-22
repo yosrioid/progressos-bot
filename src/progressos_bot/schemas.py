@@ -1,4 +1,5 @@
 from datetime import date as Date
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -141,6 +142,13 @@ class ProgressOSActionRequest(BaseModel):
     progressos_user_id: str | None = Field(default=None, min_length=1)
     original_text: str = Field(min_length=1, max_length=5000)
     parsed_action: ParsedAction
+
+
+class ProgressOSSubmissionAudit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    submitted_at: datetime
+    idempotency_key: str = Field(min_length=1)
 
 
 class ProgressOSQuickCaptureRequest(BaseModel):
