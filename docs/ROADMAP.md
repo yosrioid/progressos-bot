@@ -4,23 +4,23 @@ The detailed phase plan lives in [Product Phases](PHASES.md).
 
 ## Current Phase
 
-Phase 7: Webhook Deployment.
+Phase 8: Multi-Channel Core.
 
 Current focus:
 
-- Add production-friendly webhook serving alongside local polling.
-- Expose health and readiness checks.
-- Keep Telegram webhook verification explicit.
-- Preserve polling for local development.
-- CI-gated Phase 7 slices.
+- Extract channel-neutral core contracts before adding another adapter.
+- Keep Telegram behavior passing through the extraction.
+- Move parsing, validation, confirmation state, and ProgressOS submission into reusable
+  services.
+- Add core-flow tests that do not depend on Telegram-specific classes.
 
 ## Next Milestones
 
-1. Add webhook server entrypoint.
-2. Add health and readiness endpoints.
-3. Add graceful shutdown notes and deployment config.
-4. Move identity mapping server-side when ProgressOS exposes it.
-5. Extract channel-neutral core services before adding another channel.
+1. Define channel-neutral message, user, confirmation, and adapter contracts.
+2. Extract reusable capture flow from the Telegram adapter.
+3. Rewire Telegram to use the shared core flow.
+4. Add non-Telegram core-flow tests.
+5. Move identity mapping server-side when ProgressOS exposes it.
 
 ## Change Rule
 

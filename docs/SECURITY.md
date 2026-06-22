@@ -49,6 +49,11 @@ forever.
 message, and exception text. Logs must still avoid bearer tokens, raw request headers, and
 `.env` values.
 
+Webhook mode verifies `X-Telegram-Bot-Api-Secret-Token` when
+`TELEGRAM_WEBHOOK_SECRET` is configured. Keep that secret in `.env` or deployment secret
+storage. Health and readiness responses only expose coarse status strings and must not
+include tokens, headers, environment values, or debug payloads.
+
 ## AI Safety Boundary
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
