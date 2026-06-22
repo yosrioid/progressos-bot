@@ -46,6 +46,7 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("search", self._handle_search))
         app.add_handler(CommandHandler("overdue", self._handle_overdue))
         app.add_handler(CommandHandler("kanban", self._handle_kanban))
+        app.add_handler(CommandHandler("learning_stats", self._handle_learning_stats))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -180,6 +181,30 @@ class ProgressOSTelegramBot:
         except Exception as exc:
             logger.exception("Failed to fetch ProgressOS kanban")
             await update.message.reply_text(f"Gagal mengambil kanban: {exc}")
+            return
+
+        await update.message.reply_text(response.to_user_message())
+
+    async def _handle_learning_stats(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        del context
+        if update.message is None:
+            return
+
+        try:
+            response = await self._progressos.get_learning_stats()
+        except ProgressOSTransientError as exc:
+            logger.warning("Transient ProgressOS learning stats failure")
+            await update.message.reply_text(str(exc))
+            return
+        except ProgressOSClientError as exc:
+            logger.warning("ProgressOS learning stats client failure")
+            await update.message.reply_text(str(exc))
+            return
+        except Exception as exc:
+            logger.exception("Failed to fetch ProgressOS learning stats")
+            await update.message.reply_text(f"Gagal mengambil learning stats: {exc}")
             return
 
         await update.message.reply_text(response.to_user_message())
