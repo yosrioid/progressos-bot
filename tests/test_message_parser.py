@@ -113,3 +113,28 @@ async def test_parser_accepts_work_log_action() -> None:
     action = await parser.parse("catat kerja 90 menit implement webhook Telegram")
 
     assert action.intent == "log_work"
+
+
+@pytest.mark.asyncio
+async def test_parser_accepts_daily_progress_action() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "log_daily_progress",
+                "confidence": 0.9,
+                "language": "id",
+                "payload": {
+                    "title": "Backend integration progress",
+                    "description": "Quick-capture client and Telegram confirmation are done",
+                    "date": "2026-06-22",
+                    "project_name": "ProgressOS",
+                },
+                "user_confirmation_text": "Catat daily progress Backend integration progress?",
+            }
+        ),
+        min_confidence=0.75,
+    )
+
+    action = await parser.parse("catat daily progress integrasi backend selesai")
+
+    assert action.intent == "log_daily_progress"

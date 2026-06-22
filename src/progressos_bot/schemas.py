@@ -3,7 +3,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Intent = Literal["create_task", "create_blocker", "log_work", "unsupported"]
+Intent = Literal[
+    "create_task",
+    "create_blocker",
+    "log_work",
+    "log_daily_progress",
+    "unsupported",
+]
 Priority = Literal["low", "medium", "high", "urgent"]
 Language = Literal["id", "en", "unknown"]
 QuickCaptureType = Literal["task", "blocker", "work_log", "daily_progress", "learning"]
@@ -36,6 +42,15 @@ class LogWorkPayload(BaseModel):
     project_name: str | None = Field(default=None, min_length=1, max_length=120)
 
 
+class LogDailyProgressPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=3, max_length=180)
+    description: str | None = Field(default=None, max_length=2000)
+    date: Date | None = None
+    project_name: str | None = Field(default=None, min_length=1, max_length=120)
+
+
 class UnsupportedPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -48,7 +63,13 @@ class ParsedAction(BaseModel):
     intent: Intent
     confidence: float = Field(ge=0, le=1)
     language: Language
-    payload: CreateTaskPayload | CreateBlockerPayload | LogWorkPayload | UnsupportedPayload
+    payload: (
+        CreateTaskPayload
+        | CreateBlockerPayload
+        | LogWorkPayload
+        | LogDailyProgressPayload
+        | UnsupportedPayload
+    )
     user_confirmation_text: str = Field(min_length=5, max_length=500)
 
     @model_validator(mode="after")
@@ -61,6 +82,10 @@ class ParsedAction(BaseModel):
             raise ValueError("create_blocker intent requires CreateBlockerPayload")
         if self.intent == "log_work" and not isinstance(self.payload, LogWorkPayload):
             raise ValueError("log_work intent requires LogWorkPayload")
+        if self.intent == "log_daily_progress" and not isinstance(
+            self.payload, LogDailyProgressPayload
+        ):
+            raise ValueError("log_daily_progress intent requires LogDailyProgressPayload")
         if self.intent == "unsupported" and not isinstance(self.payload, UnsupportedPayload):
             raise ValueError("unsupported intent requires UnsupportedPayload")
         return self

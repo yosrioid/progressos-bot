@@ -154,6 +154,7 @@ Current implementation slice:
 - `create_task` maps to quick-capture `task`.
 - `create_blocker` maps to quick-capture `blocker`.
 - `log_work` maps to quick-capture `work_log`.
+- `log_daily_progress` maps to quick-capture `daily_progress`.
 - The client adds `Idempotency-Key` to every confirmed submit.
 - The client retries timeout, network, and 5xx failures with the same idempotency key.
 - Laravel `422` validation responses are parsed into a typed validation error.
@@ -195,7 +196,7 @@ Suggested implementation order:
 
 1. `create_blocker` - implemented.
 2. `log_work` - implemented.
-3. `log_daily_progress`
+3. `log_daily_progress` - implemented.
 4. `capture_learning`
 
 ## Phase 4: Read-Only Commands
