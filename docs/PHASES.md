@@ -358,7 +358,7 @@ Acceptance criteria:
 
 ## Phase 9: Observability And Admin Tools
 
-Status: planned.
+Status: complete.
 
 Goal: make the bot easy to operate and debug safely.
 
