@@ -782,3 +782,98 @@ async def test_search_raises_transient_error_for_server_error() -> None:
 
     with pytest.raises(ProgressOSTransientError):
         await client.search("webhook")
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_returns_concise_user_message() -> None:
+    seen_requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "message": "Task overdue",
+                "tasks": [
+                    {
+                        "title": "Follow up invoice client A",
+                        "project_name": "ProgressOS",
+                        "due_date": "2026-06-20",
+                        "record_path": "/tasks/42",
+                    }
+                ],
+            },
+        )
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_overdue()
+
+    assert len(seen_requests) == 1
+    request = seen_requests[0]
+    assert request.method == "GET"
+    assert request.url.path == "/api/v1/tasks/overdue"
+    assert request.headers["Authorization"] == "Bearer secret-token"
+    assert response.to_user_message() == (
+        "Task overdue\n"
+        "1. Follow up invoice client A (ProgressOS, 2026-06-20) - /tasks/42"
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_handles_empty_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"tasks": []})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    response = await client.get_overdue()
+
+    assert response.tasks == []
+    assert response.to_user_message() == "Tidak ada task overdue."
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_rejects_unauthorized_response_safely() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"message": "Forbidden details"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSClientError, match="menolak akses task overdue"):
+        await client.get_overdue()
+
+
+@pytest.mark.asyncio
+async def test_get_overdue_raises_transient_error_for_server_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"message": "Temporary failure"})
+
+    client = ProgressOSClient(
+        base_url="https://progressos.test",
+        token="secret-token",
+        endpoint="/api/v1/quick-capture",
+        timeout_seconds=5,
+        transport=httpx.MockTransport(handler),
+    )
+
+    with pytest.raises(ProgressOSTransientError):
+        await client.get_overdue()

@@ -16,8 +16,8 @@ Current focus:
 
 ## Next Milestones
 
-1. Add `/overdue`.
-2. Add `/kanban`.
+1. Add `/kanban`.
+2. Add `/learning_stats`.
 3. Add read-only ProgressOS commands.
 4. Add per-user identity mapping and authorization.
 5. Extract channel-neutral core services before adding another channel.
