@@ -232,16 +232,16 @@ Acceptance criteria:
 
 ## Phase 5: User Identity And Authorization
 
-Status: planned.
+Status: in progress.
 
 Goal: move from one shared ProgressOS API token to per-user authorization.
 
 Features:
 
-- Channel user identity model.
+- Channel user identity model - implemented.
 - Mapping from Telegram user ID to ProgressOS user ID.
-- Authorization check before showing or submitting actions.
-- Admin-only allowlist bootstrap.
+- Authorization check before showing or submitting actions - implemented for Telegram allowlist.
+- Admin-only allowlist bootstrap - implemented through `TELEGRAM_ALLOWED_USER_IDS`.
 - Revocation flow.
 - Audit metadata on submitted actions.
 

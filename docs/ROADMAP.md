@@ -16,10 +16,10 @@ Current focus:
 
 ## Next Milestones
 
-1. Add channel user identity model.
-2. Add Telegram allowlist bootstrap.
-3. Add read-only ProgressOS commands.
-4. Add per-user identity mapping and authorization.
+1. Map Telegram user IDs to ProgressOS user IDs.
+2. Add revocation flow.
+3. Add audit metadata on submitted actions.
+4. Harden per-user identity checks for read commands.
 5. Extract channel-neutral core services before adding another channel.
 
 ## Change Rule

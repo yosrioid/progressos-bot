@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     progressos_base_url: AnyHttpUrl
     progressos_api_token: str = Field(min_length=1)
     progressos_assistant_endpoint: str = "/api/v1/quick-capture"
+    telegram_allowed_user_ids: str = ""
 
     app_env: Literal["local", "staging", "production"] = "local"
     log_level: str = "INFO"
