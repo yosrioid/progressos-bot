@@ -151,6 +151,45 @@ def test_unknown_payload_fields_are_rejected() -> None:
         )
 
 
+def test_top_level_api_target_fields_are_rejected() -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "create_task",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Deploy ProgressOS bot",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                },
+                "api_url": "https://example.invalid",
+                "user_confirmation_text": "Buat task Deploy ProgressOS bot?",
+            }
+        )
+
+
+@pytest.mark.parametrize("field_name", ["headers", "progressos_path", "endpoint"])
+def test_payload_api_control_fields_are_rejected(field_name: str) -> None:
+    with pytest.raises(ValidationError):
+        ParsedAction.model_validate(
+            {
+                "intent": "create_task",
+                "confidence": 0.91,
+                "language": "id",
+                "payload": {
+                    "title": "Deploy ProgressOS bot",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                    field_name: "/api/v1/admin",
+                },
+                "user_confirmation_text": "Buat task Deploy ProgressOS bot?",
+            }
+        )
+
+
 def test_intent_must_match_payload_shape() -> None:
     with pytest.raises(ValidationError):
         ParsedAction.model_validate(
