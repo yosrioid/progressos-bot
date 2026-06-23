@@ -39,6 +39,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
         endpoint=settings.progressos_assistant_endpoint,
         timeout_seconds=settings.http_timeout_seconds,
         retry_queue=retry_queue,
+        api_version=settings.progressos_api_version,
     )
     pending_store = None
     if settings.pending_store_path:

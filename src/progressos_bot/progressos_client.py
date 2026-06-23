@@ -55,6 +55,7 @@ class ProgressOSClient:
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], datetime] | None = None,
         retry_queue: RetryQueue | None = None,
+        api_version: str = "v1",
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._endpoint = endpoint if endpoint.startswith("/") else f"/{endpoint}"
@@ -62,6 +63,7 @@ class ProgressOSClient:
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "X-ProgressOS-API-Version": api_version,
         }
         self._timeout = timeout_seconds
         self._idempotency_key_factory = idempotency_key_factory or self._new_idempotency_key

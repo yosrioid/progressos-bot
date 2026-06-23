@@ -14,8 +14,13 @@ POST /api/v1/quick-capture
 Authorization: Bearer <PROGRESSOS_API_TOKEN>
 Content-Type: application/json
 Accept: application/json
+X-ProgressOS-API-Version: v1
 Idempotency-Key: <unique-key-per-confirmed-submit>
 ```
+
+`PROGRESSOS_API_VERSION` controls the `X-ProgressOS-API-Version` header. The default is
+`v1`, and existing `/api/v1/...` endpoint paths remain unchanged for backward
+compatibility.
 
 ## Request Body
 
