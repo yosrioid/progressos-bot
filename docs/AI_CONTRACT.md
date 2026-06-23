@@ -43,6 +43,10 @@ The parser must return one JSON object and nothing else:
 }
 ```
 
+When `GROQ_STRUCTURED_OUTPUT_MODE` is `best_effort` or `strict`, the bot sends a JSON
+Schema response format to Groq. Local Pydantic validation remains mandatory even when
+structured output is enabled.
+
 ## Supported Intent: create_task
 
 Required payload fields:

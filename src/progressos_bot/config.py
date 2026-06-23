@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     telegram_bot_token: str = Field(min_length=1)
     groq_api_key: str = Field(min_length=1)
     groq_model: str = "llama-3.3-70b-versatile"
+    groq_structured_output_mode: Literal["off", "best_effort", "strict"] = "off"
 
     progressos_base_url: AnyHttpUrl
     progressos_api_token: str = Field(min_length=1)

@@ -20,7 +20,11 @@ from progressos_bot.webhook import (
 
 
 def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
-    groq = GroqParserClient(api_key=settings.groq_api_key, model=settings.groq_model)
+    groq = GroqParserClient(
+        api_key=settings.groq_api_key,
+        model=settings.groq_model,
+        structured_output_mode=settings.groq_structured_output_mode,
+    )
     parser = MessageParser(
         groq=groq,
         min_confidence=settings.ai_min_confidence,

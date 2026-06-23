@@ -9,8 +9,10 @@ from progressos_bot.ai.groq_client import GroqParserClient
 class FakeCompletions:
     def __init__(self, content: str | None) -> None:
         self.content = content
+        self.requests: list[dict[str, Any]] = []
 
     async def create(self, **_kwargs: Any) -> SimpleNamespace:
+        self.requests.append(_kwargs)
         return SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content=self.content))]
         )
@@ -32,6 +34,24 @@ def make_client(content: str | None) -> GroqParserClient:
     return client
 
 
+def make_structured_client(
+    content: str | None,
+    *,
+    mode: str,
+) -> GroqParserClient:
+    client = GroqParserClient(
+        api_key="fake-key",
+        model="test-model",
+        structured_output_mode=mode,
+    )
+    client._client = FakeGroqSdk(content=content)
+    return client
+
+
+def last_request(client: GroqParserClient) -> dict[str, Any]:
+    return client._client.chat.completions.requests[-1]
+
+
 @pytest.mark.asyncio
 async def test_groq_parser_accepts_json_object_response() -> None:
     client = make_client('{"intent": "unsupported", "confidence": 0.9}')
@@ -39,6 +59,44 @@ async def test_groq_parser_accepts_json_object_response() -> None:
     parsed = await client.parse_message(message="hapus semua task", today="2026-06-23")
 
     assert parsed == {"intent": "unsupported", "confidence": 0.9}
+    assert "response_format" not in last_request(client)
+
+
+@pytest.mark.asyncio
+async def test_groq_parser_can_request_best_effort_structured_output() -> None:
+    client = make_structured_client(
+        '{"intent": "unsupported", "confidence": 0.9}',
+        mode="best_effort",
+    )
+
+    await client.parse_message(message="hapus semua task", today="2026-06-23")
+
+    response_format = last_request(client)["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["name"] == "progressos_parser_response"
+    assert response_format["json_schema"]["strict"] is False
+
+
+@pytest.mark.asyncio
+async def test_groq_parser_can_request_strict_structured_output() -> None:
+    client = make_structured_client(
+        '{"intent": "unsupported", "confidence": 0.9}',
+        mode="strict",
+    )
+
+    await client.parse_message(message="hapus semua task", today="2026-06-23")
+
+    response_format = last_request(client)["response_format"]
+    schema = response_format["json_schema"]["schema"]
+    assert response_format["json_schema"]["strict"] is True
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == {
+        "intent",
+        "confidence",
+        "language",
+        "payload",
+        "user_confirmation_text",
+    }
 
 
 @pytest.mark.asyncio
