@@ -386,7 +386,7 @@ Acceptance criteria:
 
 ## Phase 10: Product Hardening
 
-Status: in progress.
+Status: complete for bot-owned scope.
 
 Goal: make the system dependable for real daily use.
 
@@ -407,6 +407,13 @@ Acceptance criteria:
 - Prompt injection attempts cannot bypass validation or confirmation.
 - Date interpretation is deterministic for `Asia/Jakarta` unless configured otherwise.
 - Feature flags can disable risky intents without redeploying.
+
+External dependency:
+
+- Moving Telegram-to-ProgressOS identity mapping fully server-side remains deferred until
+  ProgressOS exposes a supported identity resolution contract. Until then, the bot keeps
+  `TELEGRAM_PROGRESSOS_USER_MAP` as a bootstrap mapping and ProgressOS remains the final
+  authorization gate.
 
 ## Definition Of Done
 
