@@ -1,6 +1,6 @@
 import json
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from groq import AsyncGroq
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -51,7 +51,7 @@ class GroqParserClient:
             request["response_format"] = response_format
 
         response = await self._client.chat.completions.create(**request)
-        return response.choices[0].message.content
+        return cast(str | None, response.choices[0].message.content)
 
     def _response_format(self) -> dict[str, Any] | None:
         if self._structured_output_mode == "off":
