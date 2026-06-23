@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from typing import Any
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -47,6 +48,7 @@ class ProgressOSTelegramBot:
         rate_limiter: RateLimiter | None = None,
         confirmation_ttl_seconds: int = 900,
         pending_store: PendingActionStore | None = None,
+        enabled_capture_intents: Collection[str] | None = None,
     ) -> None:
         self._token = token
         self._progressos = progressos
@@ -66,6 +68,7 @@ class ProgressOSTelegramBot:
             parser=parser,
             progressos=progressos,
             pending=pending,
+            enabled_intents=enabled_capture_intents,
         )
 
     def build_application(self) -> Any:

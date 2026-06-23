@@ -1,9 +1,14 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, get_args
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from progressos_bot.schemas import Intent
+
+CAPTURE_INTENT_VALUES = tuple(intent for intent in get_args(Intent) if intent != "unsupported")
+DEFAULT_CAPTURE_ENABLED_INTENTS = ",".join(CAPTURE_INTENT_VALUES)
 
 
 class Settings(BaseSettings):
@@ -36,6 +41,7 @@ class Settings(BaseSettings):
     retry_dead_letter_after_attempts: int = Field(default=5, gt=0)
     rate_limit_max_requests: int = Field(default=20, gt=0)
     rate_limit_window_seconds: int = Field(default=60, gt=0)
+    capture_enabled_intents: str = DEFAULT_CAPTURE_ENABLED_INTENTS
 
     app_env: Literal["local", "staging", "production"] = "local"
     app_timezone: str = "Asia/Jakarta"
@@ -52,6 +58,23 @@ class Settings(BaseSettings):
         except ZoneInfoNotFoundError as exc:
             raise ValueError("app_timezone must be a valid IANA timezone name") from exc
         return value
+
+    @field_validator("capture_enabled_intents")
+    @classmethod
+    def validate_capture_enabled_intents(cls, value: str) -> str:
+        tokens = cls._parse_capture_enabled_intents(value)
+        unknown = sorted(set(tokens) - set(CAPTURE_INTENT_VALUES))
+        if unknown:
+            joined = ", ".join(unknown)
+            raise ValueError(f"capture_enabled_intents contains unknown intents: {joined}")
+        return ",".join(dict.fromkeys(tokens))
+
+    def capture_enabled_intent_set(self) -> frozenset[str]:
+        return frozenset(self._parse_capture_enabled_intents(self.capture_enabled_intents))
+
+    @staticmethod
+    def _parse_capture_enabled_intents(value: str) -> list[str]:
+        return [token.strip() for token in value.split(",") if token.strip()]
 
 
 @lru_cache

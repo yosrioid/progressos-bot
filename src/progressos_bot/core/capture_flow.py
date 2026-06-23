@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
@@ -12,6 +12,15 @@ from progressos_bot.schemas import (
 )
 
 CaptureDraftStatus = Literal["confirmation_required", "unsupported"]
+CAPTURE_INTENTS = frozenset(
+    (
+        "create_task",
+        "create_blocker",
+        "log_work",
+        "log_daily_progress",
+        "capture_learning",
+    )
+)
 
 
 class ActionParser(Protocol):
@@ -45,12 +54,16 @@ class CaptureFlow:
         pending: PendingActionStore,
         correlation_id_factory: Callable[[], str] | None = None,
         metrics: MetricsSink | None = None,
+        enabled_intents: Collection[str] | None = None,
     ) -> None:
         self._parser = parser
         self._progressos = progressos
         self._pending = pending
         self._new_correlation_id = correlation_id_factory or CorrelationIdFactory().new
         self._metrics = metrics or NoopMetricsSink()
+        self._enabled_intents = (
+            CAPTURE_INTENTS if enabled_intents is None else frozenset(enabled_intents)
+        )
 
     async def begin_capture(self, *, user_key: str, original_text: str) -> CaptureDraftResult:
         correlation_id = self._new_correlation_id()
@@ -60,6 +73,14 @@ class CaptureFlow:
             return CaptureDraftResult(
                 status="unsupported",
                 user_message=action.user_confirmation_text,
+                correlation_id=correlation_id,
+            )
+
+        if action.intent not in self._enabled_intents:
+            self._metrics.increment("capture_parse_total", outcome="disabled")
+            return CaptureDraftResult(
+                status="unsupported",
+                user_message=f"Intent {action.intent} sedang dinonaktifkan admin.",
                 correlation_id=correlation_id,
             )
 

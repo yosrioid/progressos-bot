@@ -81,6 +81,8 @@ Current supported mapping:
 - `capture_learning.payload.date` -> `date`
 
 Unsupported actions are not submitted.
+Actions whose intent is disabled by `CAPTURE_ENABLED_INTENTS` are also not submitted or
+stored as pending confirmations.
 
 ## Expected Success Response
 

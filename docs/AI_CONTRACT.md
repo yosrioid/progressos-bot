@@ -216,5 +216,6 @@ The bot rejects the response before user confirmation when:
 - The response has unknown top-level fields.
 - The payload has unknown fields.
 - The intent and payload shape do not match.
+- The intent is disabled by `CAPTURE_ENABLED_INTENTS`.
 - The confidence is below `AI_MIN_CONFIDENCE`.
 - The confirmation text is missing.

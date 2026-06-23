@@ -63,6 +63,7 @@ def make_flow(
     *,
     action: ParsedAction | None = None,
     progressos: FakeProgressOS | None = None,
+    enabled_intents: set[str] | None = None,
 ) -> tuple[CaptureFlow, FakeParser, FakeProgressOS]:
     parser = FakeParser(action=action or make_action())
     client = progressos or FakeProgressOS()
@@ -71,6 +72,7 @@ def make_flow(
         progressos=client,
         pending=InMemoryPendingActionStore(ttl_seconds=60),
         correlation_id_factory=lambda: "corr-capture",
+        enabled_intents=enabled_intents,
     )
     return flow, parser, client
 
@@ -142,6 +144,28 @@ async def test_begin_capture_returns_unsupported_without_pending_submit() -> Non
 
 
 @pytest.mark.asyncio
+async def test_begin_capture_rejects_disabled_intent_without_pending_submit() -> None:
+    flow, _parser, client = make_flow(enabled_intents={"log_work"})
+
+    result = await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="buat task follow up invoice client A",
+    )
+    submitted = await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert result.status == "unsupported"
+    assert result.user_message == "Intent create_task sedang dinonaktifkan admin."
+    assert submitted.submitted is False
+    assert submitted.user_message == "Tidak ada draft aktif atau draft sudah kedaluwarsa."
+    assert client.submitted_requests == []
+
+
+@pytest.mark.asyncio
 async def test_capture_flow_records_unsupported_and_missing_draft_metrics() -> None:
     flow, metrics = make_flow_with_metrics(action=make_action("unsupported"))
 
@@ -158,6 +182,28 @@ async def test_capture_flow_records_unsupported_and_missing_draft_metrics() -> N
 
     assert metrics.count("capture_parse_total", outcome="unsupported") == 1
     assert metrics.count("capture_submit_total", outcome="missing_draft") == 1
+
+
+@pytest.mark.asyncio
+async def test_capture_flow_records_disabled_intent_metric() -> None:
+    metrics = InMemoryMetricsSink()
+    parser = FakeParser(action=make_action())
+    flow = CaptureFlow(
+        parser=parser,
+        progressos=FakeProgressOS(),
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+        correlation_id_factory=lambda: "corr-capture",
+        metrics=metrics,
+        enabled_intents={"log_work"},
+    )
+
+    await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="buat task follow up invoice client A",
+    )
+
+    assert metrics.count("capture_parse_total", outcome="disabled") == 1
+    assert metrics.count("capture_confirmation_total", outcome="requested") == 0
 
 
 @pytest.mark.asyncio

@@ -60,6 +60,7 @@ def make_bot(
                 app_env="local",
                 run_mode="polling",
                 log_format="text",
+                capture_enabled_intents={"create_task"},
                 pending_store_enabled=False,
                 retry_queue_enabled=False,
                 allowlist_configured=bool(allowed),

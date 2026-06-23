@@ -52,6 +52,7 @@ CONFIRMATION_TTL_SECONDS=900
 PENDING_STORE_PATH=./storage/pending.sqlite3
 RETRY_QUEUE_PATH=./storage/retry.sqlite3
 RETRY_DEAD_LETTER_AFTER_ATTEMPTS=5
+CAPTURE_ENABLED_INTENTS=create_task,create_blocker,log_work,log_daily_progress,capture_learning
 APP_TIMEZONE=Asia/Jakarta
 LOG_FORMAT=text
 ```
@@ -87,19 +88,20 @@ make check
 
 ## Supported Actions
 
-Initial supported intent:
+Supported capture intents:
 
 - `create_task`
-
-Planned intents:
-
-- `add_note`
-- `update_task`
-- `query_status`
+- `create_blocker`
+- `log_work`
+- `log_daily_progress`
+- `capture_learning`
+- `unsupported`
 
 Unsupported or ambiguous messages must produce `unsupported`, not a guessed action.
 Relative dates such as "today" or "besok" are resolved from `APP_TIMEZONE`, which defaults
 to `Asia/Jakarta`.
+Capture intents can be limited with `CAPTURE_ENABLED_INTENTS`; disabled intents are rejected
+before confirmation and are not sent to ProgressOS.
 
 ## Safety Rules
 
