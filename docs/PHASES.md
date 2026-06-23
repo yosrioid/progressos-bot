@@ -386,7 +386,7 @@ Acceptance criteria:
 
 ## Phase 10: Product Hardening
 
-Status: planned.
+Status: in progress.
 
 Goal: make the system dependable for real daily use.
 
@@ -394,7 +394,7 @@ Features:
 
 - Rate limiting - implemented for capture input before parser calls.
 - Abuse prevention.
-- Prompt injection test cases.
+- Prompt injection test cases - implemented for unsafe instruction override and bypass fields.
 - Language normalization for Indonesian and English.
 - Better date parsing with timezone awareness.
 - User preference defaults.
