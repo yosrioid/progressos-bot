@@ -54,6 +54,9 @@ Run them with:
 make eval-parser
 ```
 
+The evaluator prints total pass/fail counts plus breakdowns by intent, language, and
+failure category.
+
 ## Supported Intent: create_task
 
 Required payload fields:
