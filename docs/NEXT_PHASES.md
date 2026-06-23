@@ -87,6 +87,8 @@ Current implementation slice:
 - The default remains `off` until evaluation results justify changing behavior.
 - `progressos-bot-eval-parser` evaluates offline parser output fixtures without calling
   Groq.
+- Evaluation summaries include pass/fail breakdowns by intent, language, and failure
+  category.
 
 Acceptance criteria:
 

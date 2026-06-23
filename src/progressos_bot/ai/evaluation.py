@@ -1,7 +1,7 @@
 import argparse
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -32,7 +32,18 @@ class ParserEvaluationResult(BaseModel):
 
     id: str
     passed: bool
+    intent: str
+    language: str
+    failure_category: str | None = None
     reason: str
+
+
+class ParserEvaluationBreakdown(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    total: int = 0
+    passed: int = 0
+    failed: int = 0
 
 
 class ParserEvaluationSummary(BaseModel):
@@ -41,6 +52,9 @@ class ParserEvaluationSummary(BaseModel):
     total: int
     passed: int
     failed: int
+    by_intent: dict[str, ParserEvaluationBreakdown]
+    by_language: dict[str, ParserEvaluationBreakdown]
+    by_failure_category: dict[str, int]
     results: list[ParserEvaluationResult]
 
 
@@ -56,15 +70,15 @@ def evaluate_cases(
     *,
     min_confidence: float = 0.75,
 ) -> ParserEvaluationSummary:
-    results = [
-        evaluate_case(case, min_confidence=min_confidence)
-        for case in cases
-    ]
+    results = [evaluate_case(case, min_confidence=min_confidence) for case in cases]
     passed = sum(1 for result in results if result.passed)
     return ParserEvaluationSummary(
         total=len(results),
         passed=passed,
         failed=len(results) - passed,
+        by_intent=_breakdown_by(results, key="intent"),
+        by_language=_breakdown_by(results, key="language"),
+        by_failure_category=_failure_breakdown(results),
         results=results,
     )
 
@@ -78,43 +92,122 @@ def evaluate_case(
         action = ParsedAction.model_validate(case.model_output)
     except ValidationError as exc:
         if not case.expected.valid:
-            return ParserEvaluationResult(id=case.id, passed=True, reason="invalid as expected")
-        return ParserEvaluationResult(id=case.id, passed=False, reason=str(exc))
+            return _result(
+                case,
+                passed=True,
+                reason="invalid as expected",
+            )
+        return _result(
+            case,
+            passed=False,
+            failure_category="validation_error",
+            reason=str(exc),
+        )
 
     if not case.expected.valid:
-        return ParserEvaluationResult(
-            id=case.id,
+        return _result(
+            case,
             passed=False,
+            action=action,
+            failure_category="unexpected_valid_output",
             reason="expected invalid output but validation passed",
         )
     if action.confidence < min_confidence:
-        return ParserEvaluationResult(
-            id=case.id,
+        return _result(
+            case,
             passed=False,
+            action=action,
+            failure_category="low_confidence",
             reason=f"confidence {action.confidence:.2f} below {min_confidence:.2f}",
         )
     if case.expected.intent is not None and action.intent != case.expected.intent:
-        return ParserEvaluationResult(
-            id=case.id,
+        return _result(
+            case,
             passed=False,
+            action=action,
+            failure_category="intent_mismatch",
             reason=f"expected intent {case.expected.intent}, got {action.intent}",
         )
     if case.expected.language is not None and action.language != case.expected.language:
-        return ParserEvaluationResult(
-            id=case.id,
+        return _result(
+            case,
             passed=False,
+            action=action,
+            failure_category="language_mismatch",
             reason=f"expected language {case.expected.language}, got {action.language}",
         )
 
     payload = action.model_dump(mode="json")["payload"]
     if not _contains_subset(payload, case.expected.payload_contains):
-        return ParserEvaluationResult(
-            id=case.id,
+        return _result(
+            case,
             passed=False,
+            action=action,
+            failure_category="payload_mismatch",
             reason="payload did not contain expected fields",
         )
 
-    return ParserEvaluationResult(id=case.id, passed=True, reason="ok")
+    return _result(case, passed=True, action=action, reason="ok")
+
+
+def _result(
+    case: ParserEvaluationCase,
+    *,
+    passed: bool,
+    reason: str,
+    action: ParsedAction | None = None,
+    failure_category: str | None = None,
+) -> ParserEvaluationResult:
+    return ParserEvaluationResult(
+        id=case.id,
+        passed=passed,
+        intent=_result_intent(case, action),
+        language=_result_language(case, action),
+        failure_category=failure_category,
+        reason=reason,
+    )
+
+
+def _result_intent(case: ParserEvaluationCase, action: ParsedAction | None) -> str:
+    if case.expected.intent is not None:
+        return case.expected.intent
+    if action is not None:
+        return action.intent
+    return "unknown"
+
+
+def _result_language(case: ParserEvaluationCase, action: ParsedAction | None) -> str:
+    if case.expected.language is not None:
+        return case.expected.language
+    if action is not None:
+        return action.language
+    return "unknown"
+
+
+def _breakdown_by(
+    results: list[ParserEvaluationResult],
+    *,
+    key: Literal["intent", "language"],
+) -> dict[str, ParserEvaluationBreakdown]:
+    breakdown: dict[str, ParserEvaluationBreakdown] = {}
+    for result in results:
+        bucket_key = result.intent if key == "intent" else result.language
+        bucket = breakdown.setdefault(bucket_key, ParserEvaluationBreakdown())
+        bucket.total += 1
+        if result.passed:
+            bucket.passed += 1
+        else:
+            bucket.failed += 1
+    return breakdown
+
+
+def _failure_breakdown(results: list[ParserEvaluationResult]) -> dict[str, int]:
+    breakdown: dict[str, int] = {}
+    for result in results:
+        if result.failure_category is None:
+            continue
+        breakdown[result.failure_category] = breakdown.get(result.failure_category, 0) + 1
+    return breakdown
 
 
 def _contains_subset(value: object, expected: dict[str, Any]) -> bool:
