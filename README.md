@@ -125,6 +125,7 @@ defaulting to `v1`.
 - [Bot rules](docs/RULES.md)
 - [AI contract](docs/AI_CONTRACT.md)
 - [Product phases](docs/PHASES.md)
+- [Next version phases](docs/NEXT_PHASES.md)
 - [Python engineering guide](docs/PYTHON_ENGINEERING_GUIDE.md)
 - [Deployment notes](docs/DEPLOYMENT.md)
 - [ProgressOS API research](docs/PROGRESSOS_API_RESEARCH.md)
