@@ -14,10 +14,9 @@ Current focus:
 
 ## Next Milestones
 
-1. Add deterministic timezone-aware date handling.
-2. Add admin-managed feature flags for capture intents.
-3. Continue abuse prevention beyond per-user rate limiting.
-4. Move identity mapping server-side when ProgressOS exposes it.
+1. Add admin-managed feature flags for capture intents.
+2. Continue abuse prevention beyond per-user rate limiting.
+3. Move identity mapping server-side when ProgressOS exposes it.
 
 ## Change Rule
 

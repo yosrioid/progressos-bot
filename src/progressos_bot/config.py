@@ -1,7 +1,8 @@
 from functools import lru_cache
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,10 +38,20 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = Field(default=60, gt=0)
 
     app_env: Literal["local", "staging", "production"] = "local"
+    app_timezone: str = "Asia/Jakarta"
     log_level: str = "INFO"
     log_format: Literal["text", "json"] = "text"
     ai_min_confidence: float = Field(default=0.75, ge=0, le=1)
     http_timeout_seconds: float = Field(default=20, gt=0)
+
+    @field_validator("app_timezone")
+    @classmethod
+    def validate_app_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("app_timezone must be a valid IANA timezone name") from exc
+        return value
 
 
 @lru_cache

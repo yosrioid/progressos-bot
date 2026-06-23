@@ -396,7 +396,7 @@ Features:
 - Abuse prevention.
 - Prompt injection test cases - implemented for unsafe instruction override and bypass fields.
 - Language normalization for Indonesian and English.
-- Better date parsing with timezone awareness.
+- Better date parsing with timezone awareness - implemented for parser `current_date`.
 - User preference defaults.
 - Admin-managed feature flags.
 - Backward-compatible API versioning.

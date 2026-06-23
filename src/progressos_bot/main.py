@@ -21,7 +21,11 @@ from progressos_bot.webhook import (
 
 def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
     groq = GroqParserClient(api_key=settings.groq_api_key, model=settings.groq_model)
-    parser = MessageParser(groq=groq, min_confidence=settings.ai_min_confidence)
+    parser = MessageParser(
+        groq=groq,
+        min_confidence=settings.ai_min_confidence,
+        timezone_name=settings.app_timezone,
+    )
     retry_queue = None
     if settings.retry_queue_path:
         retry_queue = SQLiteRetryQueue(

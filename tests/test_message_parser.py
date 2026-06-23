@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from datetime import UTC, date, datetime
 from typing import Any
 
 import pytest
@@ -11,10 +12,12 @@ from progressos_bot.ai.prompts import SYSTEM_PROMPT, build_user_prompt
 class FakeGroqClient:
     def __init__(self, response: Mapping[str, Any]) -> None:
         self.response = response
+        self.today_values: list[str] = []
 
     async def parse_message(self, message: str, today: str) -> Mapping[str, Any]:
         assert message
         assert today
+        self.today_values.append(today)
         return self.response
 
 
@@ -165,6 +168,52 @@ async def test_parser_accepts_learning_action() -> None:
     action = await parser.parse("catat learning retry webhook pakai idempotency key")
 
     assert action.intent == "capture_learning"
+
+
+@pytest.mark.asyncio
+async def test_parser_uses_configured_timezone_for_current_date() -> None:
+    groq = FakeGroqClient(
+        {
+            "intent": "unsupported",
+            "confidence": 0.88,
+            "language": "id",
+            "payload": {"reason": "Tanggal diperiksa lewat prompt."},
+            "user_confirmation_text": "Input ini belum didukung.",
+        }
+    )
+    parser = MessageParser(
+        groq=groq,
+        min_confidence=0.75,
+        timezone_name="Asia/Jakarta",
+        clock=lambda: datetime(2026, 6, 22, 17, 30, tzinfo=UTC),
+    )
+
+    await parser.parse("hari ini")
+
+    assert groq.today_values == ["2026-06-23"]
+
+
+@pytest.mark.asyncio
+async def test_parser_explicit_today_overrides_timezone_clock() -> None:
+    groq = FakeGroqClient(
+        {
+            "intent": "unsupported",
+            "confidence": 0.88,
+            "language": "id",
+            "payload": {"reason": "Tanggal eksplisit dipakai untuk test."},
+            "user_confirmation_text": "Input ini belum didukung.",
+        }
+    )
+    parser = MessageParser(
+        groq=groq,
+        min_confidence=0.75,
+        timezone_name="Asia/Jakarta",
+        clock=lambda: datetime(2026, 6, 22, 17, 30, tzinfo=UTC),
+    )
+
+    await parser.parse("hari ini", today=date(2026, 1, 2))
+
+    assert groq.today_values == ["2026-01-02"]
 
 
 def test_prompt_marks_channel_message_as_untrusted_content() -> None:
