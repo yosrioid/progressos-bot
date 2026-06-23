@@ -49,6 +49,7 @@ class ProgressOSTelegramBot:
         confirmation_ttl_seconds: int = 900,
         pending_store: PendingActionStore | None = None,
         enabled_capture_intents: Collection[str] | None = None,
+        capture_max_input_chars: int = 2000,
     ) -> None:
         self._token = token
         self._progressos = progressos
@@ -69,6 +70,7 @@ class ProgressOSTelegramBot:
             progressos=progressos,
             pending=pending,
             enabled_intents=enabled_capture_intents,
+            max_input_chars=capture_max_input_chars,
         )
 
     def build_application(self) -> Any:

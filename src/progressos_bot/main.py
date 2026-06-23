@@ -82,6 +82,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
         pending_store=pending_store,
         enabled_capture_intents=settings.capture_enabled_intent_set(),
+        capture_max_input_chars=settings.capture_max_input_chars,
     )
 
 

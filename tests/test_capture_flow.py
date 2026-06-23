@@ -64,6 +64,7 @@ def make_flow(
     action: ParsedAction | None = None,
     progressos: FakeProgressOS | None = None,
     enabled_intents: set[str] | None = None,
+    max_input_chars: int = 2000,
 ) -> tuple[CaptureFlow, FakeParser, FakeProgressOS]:
     parser = FakeParser(action=action or make_action())
     client = progressos or FakeProgressOS()
@@ -73,6 +74,7 @@ def make_flow(
         pending=InMemoryPendingActionStore(ttl_seconds=60),
         correlation_id_factory=lambda: "corr-capture",
         enabled_intents=enabled_intents,
+        max_input_chars=max_input_chars,
     )
     return flow, parser, client
 
@@ -119,6 +121,51 @@ async def test_capture_flow_records_supported_parse_and_confirmation_metrics() -
 
     assert metrics.count("capture_parse_total", outcome="supported") == 1
     assert metrics.count("capture_confirmation_total", outcome="requested") == 1
+
+
+@pytest.mark.asyncio
+async def test_begin_capture_rejects_too_long_input_before_parser() -> None:
+    flow, parser, client = make_flow(max_input_chars=10)
+
+    result = await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="x" * 11,
+    )
+    submitted = await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert result.status == "unsupported"
+    assert result.user_message == "Input terlalu panjang. Maksimal 10 karakter."
+    assert parser.parsed_messages == []
+    assert submitted.submitted is False
+    assert client.submitted_requests == []
+
+
+@pytest.mark.asyncio
+async def test_capture_flow_records_too_long_input_metric() -> None:
+    metrics = InMemoryMetricsSink()
+    parser = FakeParser(action=make_action())
+    flow = CaptureFlow(
+        parser=parser,
+        progressos=FakeProgressOS(),
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+        correlation_id_factory=lambda: "corr-capture",
+        metrics=metrics,
+        max_input_chars=10,
+    )
+
+    await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="x" * 11,
+    )
+
+    assert parser.parsed_messages == []
+    assert metrics.count("capture_parse_total", outcome="input_too_long") == 1
+    assert metrics.count("capture_confirmation_total", outcome="requested") == 0
 
 
 @pytest.mark.asyncio

@@ -55,6 +55,7 @@ class CaptureFlow:
         correlation_id_factory: Callable[[], str] | None = None,
         metrics: MetricsSink | None = None,
         enabled_intents: Collection[str] | None = None,
+        max_input_chars: int = 2000,
     ) -> None:
         self._parser = parser
         self._progressos = progressos
@@ -64,9 +65,21 @@ class CaptureFlow:
         self._enabled_intents = (
             CAPTURE_INTENTS if enabled_intents is None else frozenset(enabled_intents)
         )
+        self._max_input_chars = max(1, max_input_chars)
 
     async def begin_capture(self, *, user_key: str, original_text: str) -> CaptureDraftResult:
         correlation_id = self._new_correlation_id()
+        if len(original_text) > self._max_input_chars:
+            self._metrics.increment("capture_parse_total", outcome="input_too_long")
+            return CaptureDraftResult(
+                status="unsupported",
+                user_message=(
+                    "Input terlalu panjang. "
+                    f"Maksimal {self._max_input_chars} karakter."
+                ),
+                correlation_id=correlation_id,
+            )
+
         action = await self._parser.parse(original_text)
         if action.intent == "unsupported":
             self._metrics.increment("capture_parse_total", outcome="unsupported")

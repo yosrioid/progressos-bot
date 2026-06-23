@@ -83,6 +83,8 @@ Current supported mapping:
 Unsupported actions are not submitted.
 Actions whose intent is disabled by `CAPTURE_ENABLED_INTENTS` are also not submitted or
 stored as pending confirmations.
+Capture messages longer than `CAPTURE_MAX_INPUT_CHARS` are rejected before parser calls and
+are not submitted or stored as pending confirmations.
 
 ## Expected Success Response
 

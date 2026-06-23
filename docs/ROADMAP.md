@@ -9,12 +9,11 @@ Phase 10: Product Hardening.
 Current focus:
 
 - Normalize language and date handling for daily use.
-- Continue abuse prevention beyond per-user rate limiting.
+- Continue operational hardening.
 
 ## Next Milestones
 
-1. Continue abuse prevention beyond per-user rate limiting.
-2. Move identity mapping server-side when ProgressOS exposes it.
+1. Move identity mapping server-side when ProgressOS exposes it.
 
 ## Change Rule
 
