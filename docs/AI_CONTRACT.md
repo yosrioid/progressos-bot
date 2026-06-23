@@ -14,6 +14,8 @@ candidate action that still requires confirmation.
 
 `current_date` is resolved by the bot using `APP_TIMEZONE`, which defaults to
 `Asia/Jakarta`, before the message is sent to the parser.
+If the parser returns `language: "unknown"`, the bot normalizes it to `APP_DEFAULT_LANGUAGE`,
+which defaults to `id`.
 
 ```json
 {

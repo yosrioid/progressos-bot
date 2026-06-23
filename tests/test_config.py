@@ -26,6 +26,23 @@ def test_app_timezone_must_be_valid_iana_name() -> None:
         make_settings(app_timezone="Mars/Base")
 
 
+def test_app_default_language_defaults_to_indonesian() -> None:
+    settings = make_settings()
+
+    assert settings.app_default_language == "id"
+
+
+def test_app_default_language_accepts_english() -> None:
+    settings = make_settings(app_default_language="en")
+
+    assert settings.app_default_language == "en"
+
+
+def test_app_default_language_rejects_unknown() -> None:
+    with pytest.raises(ValidationError):
+        make_settings(app_default_language="unknown")
+
+
 def test_capture_enabled_intents_default_to_all_capture_intents() -> None:
     settings = make_settings()
 

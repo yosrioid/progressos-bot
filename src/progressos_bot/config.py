@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     app_env: Literal["local", "staging", "production"] = "local"
     app_timezone: str = "Asia/Jakarta"
+    app_default_language: Literal["id", "en"] = "id"
     log_level: str = "INFO"
     log_format: Literal["text", "json"] = "text"
     ai_min_confidence: float = Field(default=0.75, ge=0, le=1)
