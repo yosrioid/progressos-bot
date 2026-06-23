@@ -102,17 +102,17 @@ Suggested release: `v0.2.0`.
 
 ## Phase 12: LLM Security Regression Program
 
-Status: proposed.
+Status: in progress.
 
 Goal: make LLM-specific risks explicit, testable, and repeatable.
 
 Features:
 
-- Map bot behavior to OWASP LLM risk categories relevant to this project:
+- Map bot behavior to OWASP LLM risk categories relevant to this project - started:
   prompt injection, insecure output handling, model denial of service, sensitive
   information disclosure, supply-chain vulnerabilities, and excessive agency.
 - Add prompt-injection fixture packs for Indonesian, English, mixed-language, and
-  copy-pasted system-prompt attacks.
+  copy-pasted system-prompt attacks - started.
 - Add tests proving the model cannot enable disabled intents.
 - Add tests proving parser output cannot add unauthorized API targets, headers, or
   ProgressOS paths.
@@ -127,6 +127,13 @@ Acceptance criteria:
 - Docs clearly state what is handled by the bot and what remains ProgressOS-owned.
 
 Suggested release: `v0.2.x`.
+
+Current implementation slice:
+
+- `tests/fixtures/llm_security_evaluation.json` covers prompt injection, sensitive
+  information disclosure, excessive agency, insecure output handling, and model denial of
+  service.
+- Parser evaluation summaries include `by_risk_category` for security fixture reporting.
 
 ## Phase 13: ProgressOS-Owned Identity Resolution
 
