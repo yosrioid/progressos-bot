@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from progressos_bot.ai.groq_client import GroqParserClient
-from progressos_bot.schemas import ParsedAction
+from progressos_bot.schemas import Language, ParsedAction
 
 
 class MessageParser:
@@ -15,11 +15,13 @@ class MessageParser:
         min_confidence: float,
         *,
         timezone_name: str = "Asia/Jakarta",
+        default_language: Language = "id",
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._groq = groq
         self._min_confidence = min_confidence
         self._timezone = ZoneInfo(timezone_name)
+        self._default_language = default_language
         self._clock = clock or self._now
 
     async def parse(self, message: str, today: date | None = None) -> ParsedAction:
@@ -36,7 +38,7 @@ class MessageParser:
                 f"AI confidence {action.confidence:.2f} is below minimum {self._min_confidence:.2f}"
             )
 
-        return action
+        return self._normalize_language(action)
 
     def _today(self) -> date:
         value = self._clock()
@@ -46,3 +48,8 @@ class MessageParser:
 
     def _now(self) -> datetime:
         return datetime.now(self._timezone)
+
+    def _normalize_language(self, action: ParsedAction) -> ParsedAction:
+        if action.language != "unknown":
+            return action
+        return action.model_copy(update={"language": self._default_language})

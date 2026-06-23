@@ -8,7 +8,6 @@ Phase 10: Product Hardening.
 
 Current focus:
 
-- Normalize language and date handling for daily use.
 - Continue operational hardening.
 
 ## Next Milestones

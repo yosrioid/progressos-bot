@@ -55,6 +55,7 @@ RETRY_DEAD_LETTER_AFTER_ATTEMPTS=5
 CAPTURE_ENABLED_INTENTS=create_task,create_blocker,log_work,log_daily_progress,capture_learning
 CAPTURE_MAX_INPUT_CHARS=2000
 APP_TIMEZONE=Asia/Jakarta
+APP_DEFAULT_LANGUAGE=id
 LOG_FORMAT=text
 ```
 
@@ -101,6 +102,7 @@ Supported capture intents:
 Unsupported or ambiguous messages must produce `unsupported`, not a guessed action.
 Relative dates such as "today" or "besok" are resolved from `APP_TIMEZONE`, which defaults
 to `Asia/Jakarta`.
+Parser language `unknown` is normalized to `APP_DEFAULT_LANGUAGE`, which defaults to `id`.
 Capture intents can be limited with `CAPTURE_ENABLED_INTENTS`; disabled intents are rejected
 before confirmation and are not sent to ProgressOS.
 Very long capture messages are rejected before parser calls using `CAPTURE_MAX_INPUT_CHARS`.

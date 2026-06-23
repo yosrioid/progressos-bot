@@ -71,6 +71,58 @@ async def test_parser_accepts_supported_action() -> None:
 
 
 @pytest.mark.asyncio
+async def test_parser_normalizes_unknown_language_to_default() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "create_task",
+                "confidence": 0.91,
+                "language": "unknown",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                },
+                "user_confirmation_text": "Buat task Follow up invoice client A?",
+            }
+        ),
+        min_confidence=0.75,
+        default_language="id",
+    )
+
+    action = await parser.parse("follow up invoice")
+
+    assert action.language == "id"
+
+
+@pytest.mark.asyncio
+async def test_parser_keeps_explicit_supported_language() -> None:
+    parser = MessageParser(
+        groq=FakeGroqClient(
+            {
+                "intent": "create_task",
+                "confidence": 0.91,
+                "language": "en",
+                "payload": {
+                    "title": "Follow up invoice client A",
+                    "description": None,
+                    "due_date": None,
+                    "priority": "medium",
+                },
+                "user_confirmation_text": "Create task Follow up invoice client A?",
+            }
+        ),
+        min_confidence=0.75,
+        default_language="id",
+    )
+
+    action = await parser.parse("create task follow up invoice")
+
+    assert action.language == "en"
+
+
+@pytest.mark.asyncio
 async def test_parser_accepts_blocker_action() -> None:
     parser = MessageParser(
         groq=FakeGroqClient(

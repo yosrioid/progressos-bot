@@ -395,9 +395,9 @@ Features:
 - Rate limiting - implemented for capture input before parser calls.
 - Abuse prevention - implemented with input length limits before parser calls.
 - Prompt injection test cases - implemented for unsafe instruction override and bypass fields.
-- Language normalization for Indonesian and English.
+- Language normalization for Indonesian and English - implemented through `APP_DEFAULT_LANGUAGE`.
 - Better date parsing with timezone awareness - implemented for parser `current_date`.
-- User preference defaults.
+- User preference defaults - implemented for timezone and language.
 - Admin-managed feature flags - implemented through `CAPTURE_ENABLED_INTENTS`.
 - Backward-compatible API versioning.
 

@@ -25,6 +25,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
         groq=groq,
         min_confidence=settings.ai_min_confidence,
         timezone_name=settings.app_timezone,
+        default_language=settings.app_default_language,
     )
     retry_queue = None
     if settings.retry_queue_path:
