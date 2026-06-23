@@ -44,3 +44,14 @@ def test_capture_enabled_intents_are_parsed_from_csv() -> None:
 def test_capture_enabled_intents_must_be_known_intents() -> None:
     with pytest.raises(ValidationError, match="unknown intents"):
         make_settings(capture_enabled_intents="create_task,delete_everything")
+
+
+def test_capture_max_input_chars_defaults_to_resource_safe_limit() -> None:
+    settings = make_settings()
+
+    assert settings.capture_max_input_chars == 2000
+
+
+def test_capture_max_input_chars_is_capped_at_action_request_limit() -> None:
+    with pytest.raises(ValidationError):
+        make_settings(capture_max_input_chars=5001)

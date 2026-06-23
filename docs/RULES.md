@@ -63,6 +63,7 @@ Reject the AI result when:
 - Payload includes unknown keys.
 - The confirmation text is empty.
 - The intent is disabled by `CAPTURE_ENABLED_INTENTS`.
+- The original message exceeds `CAPTURE_MAX_INPUT_CHARS`.
 
 ## Channel Conversation Rules
 
@@ -82,6 +83,7 @@ Reject the AI result when:
 14. Queued retry submissions move to dead-letter storage after `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
 15. Use `LOG_FORMAT=json` for structured operational logs in deployments that need machine-readable logs.
 16. Disabled capture intents must not create pending confirmations or call ProgressOS.
+17. Messages longer than `CAPTURE_MAX_INPUT_CHARS` must not be sent to the parser.
 
 ## ProgressOS Integration Rules
 

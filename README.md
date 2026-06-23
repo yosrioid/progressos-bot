@@ -53,6 +53,7 @@ PENDING_STORE_PATH=./storage/pending.sqlite3
 RETRY_QUEUE_PATH=./storage/retry.sqlite3
 RETRY_DEAD_LETTER_AFTER_ATTEMPTS=5
 CAPTURE_ENABLED_INTENTS=create_task,create_blocker,log_work,log_daily_progress,capture_learning
+CAPTURE_MAX_INPUT_CHARS=2000
 APP_TIMEZONE=Asia/Jakarta
 LOG_FORMAT=text
 ```
@@ -102,6 +103,7 @@ Relative dates such as "today" or "besok" are resolved from `APP_TIMEZONE`, whic
 to `Asia/Jakarta`.
 Capture intents can be limited with `CAPTURE_ENABLED_INTENTS`; disabled intents are rejected
 before confirmation and are not sent to ProgressOS.
+Very long capture messages are rejected before parser calls using `CAPTURE_MAX_INPUT_CHARS`.
 
 ## Safety Rules
 
