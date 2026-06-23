@@ -50,7 +50,7 @@ Acceptance criteria:
 
 ## Phase 1: Telegram Capture MVP
 
-Status: in progress.
+Status: complete.
 
 Goal: let a Telegram user submit a natural-language capture request, review the parsed
 payload, and confirm before the bot sends it to ProgressOS.
@@ -102,7 +102,7 @@ Manual verification:
 
 ## Phase 2: ProgressOS Quick Capture Completion
 
-Status: in progress.
+Status: complete.
 
 Goal: complete the full quick-capture contract against `POST /api/v1/quick-capture`.
 
@@ -141,7 +141,7 @@ Acceptance criteria:
 - Network timeout produces a safe user-facing failure.
 - Response message or record path is shown after successful capture.
 
-Tests to add:
+Test coverage:
 
 - Successful quick capture.
 - Validation error response.
@@ -149,7 +149,7 @@ Tests to add:
 - Idempotency key is included.
 - Response with missing optional fields remains safe.
 
-Current implementation slice:
+Completed implementation:
 
 - `create_task` maps to quick-capture `task`.
 - `create_blocker` maps to quick-capture `blocker`.

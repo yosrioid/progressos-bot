@@ -13,13 +13,22 @@ class GroqParserClient:
         self._client = AsyncGroq(api_key=api_key)
         self._model = model
 
+    async def parse_message(self, message: str, today: str) -> Mapping[str, Any]:
+        content = await self._request_completion(message=message, today=today)
+        if not content:
+            raise ValueError("Groq returned an empty response")
+        parsed = json.loads(content)
+        if not isinstance(parsed, dict):
+            raise ValueError("Groq response must be a JSON object")
+        return parsed
+
     @retry(
         retry=retry_if_exception_type(Exception),
         wait=wait_exponential(multiplier=1, min=1, max=8),
         stop=stop_after_attempt(3),
         reraise=True,
     )
-    async def parse_message(self, message: str, today: str) -> Mapping[str, Any]:
+    async def _request_completion(self, message: str, today: str) -> str | None:
         response = await self._client.chat.completions.create(
             model=self._model,
             temperature=0,
@@ -28,11 +37,4 @@ class GroqParserClient:
                 {"role": "user", "content": build_user_prompt(message=message, today=today)},
             ],
         )
-        content = response.choices[0].message.content
-        if not content:
-            raise ValueError("Groq returned an empty response")
-        parsed = json.loads(content)
-        if not isinstance(parsed, dict):
-            raise ValueError("Groq response must be a JSON object")
-        return parsed
-
+        return response.choices[0].message.content
