@@ -465,7 +465,8 @@ Rules:
 - Do not accept Markdown or fenced code.
 - Do not let the model invent unsupported actions.
 - Do not send low-confidence output to confirmation.
-- Store enough context later for audit: original message, parser output, user ID, timestamp, and submit result.
+- Include audit notes on confirmed writes with source identity, parser summary, submit timestamp,
+  and idempotency key.
 
 When adding a new intent:
 
