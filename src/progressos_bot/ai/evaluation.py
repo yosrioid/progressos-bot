@@ -21,6 +21,7 @@ class ParserEvaluationCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(min_length=1)
+    risk_category: str = Field(default="general", min_length=1)
     message: str = Field(min_length=1)
     today: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     model_output: dict[str, Any]
@@ -32,6 +33,7 @@ class ParserEvaluationResult(BaseModel):
 
     id: str
     passed: bool
+    risk_category: str
     intent: str
     language: str
     failure_category: str | None = None
@@ -54,6 +56,7 @@ class ParserEvaluationSummary(BaseModel):
     failed: int
     by_intent: dict[str, ParserEvaluationBreakdown]
     by_language: dict[str, ParserEvaluationBreakdown]
+    by_risk_category: dict[str, ParserEvaluationBreakdown]
     by_failure_category: dict[str, int]
     results: list[ParserEvaluationResult]
 
@@ -78,6 +81,7 @@ def evaluate_cases(
         failed=len(results) - passed,
         by_intent=_breakdown_by(results, key="intent"),
         by_language=_breakdown_by(results, key="language"),
+        by_risk_category=_breakdown_by(results, key="risk_category"),
         by_failure_category=_failure_breakdown(results),
         results=results,
     )
@@ -161,6 +165,7 @@ def _result(
     return ParserEvaluationResult(
         id=case.id,
         passed=passed,
+        risk_category=case.risk_category,
         intent=_result_intent(case, action),
         language=_result_language(case, action),
         failure_category=failure_category,
@@ -187,11 +192,11 @@ def _result_language(case: ParserEvaluationCase, action: ParsedAction | None) ->
 def _breakdown_by(
     results: list[ParserEvaluationResult],
     *,
-    key: Literal["intent", "language"],
+    key: Literal["intent", "language", "risk_category"],
 ) -> dict[str, ParserEvaluationBreakdown]:
     breakdown: dict[str, ParserEvaluationBreakdown] = {}
     for result in results:
-        bucket_key = result.intent if key == "intent" else result.language
+        bucket_key = _breakdown_key(result, key)
         bucket = breakdown.setdefault(bucket_key, ParserEvaluationBreakdown())
         bucket.total += 1
         if result.passed:
@@ -199,6 +204,17 @@ def _breakdown_by(
         else:
             bucket.failed += 1
     return breakdown
+
+
+def _breakdown_key(
+    result: ParserEvaluationResult,
+    key: Literal["intent", "language", "risk_category"],
+) -> str:
+    if key == "intent":
+        return result.intent
+    if key == "language":
+        return result.language
+    return result.risk_category
 
 
 def _failure_breakdown(results: list[ParserEvaluationResult]) -> dict[str, int]:

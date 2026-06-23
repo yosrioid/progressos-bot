@@ -22,6 +22,21 @@ def test_parser_evaluation_fixture_passes() -> None:
     assert summary.by_intent["unsupported"].passed == 2
     assert summary.by_language["id"].passed == 2
     assert summary.by_language["en"].passed == 2
+    assert summary.by_risk_category["general"].passed == 5
+
+
+def test_parser_security_evaluation_fixture_passes() -> None:
+    cases = load_evaluation_cases(Path("tests/fixtures/llm_security_evaluation.json"))
+
+    summary = evaluate_cases(cases)
+
+    assert summary.total == 5
+    assert summary.failed == 0
+    assert summary.by_risk_category["prompt_injection"].passed == 1
+    assert summary.by_risk_category["sensitive_information_disclosure"].passed == 1
+    assert summary.by_risk_category["excessive_agency"].passed == 1
+    assert summary.by_risk_category["insecure_output_handling"].passed == 1
+    assert summary.by_risk_category["model_denial_of_service"].passed == 1
 
 
 def test_parser_evaluation_reports_wrong_intent() -> None:
@@ -44,6 +59,7 @@ def test_parser_evaluation_reports_wrong_intent() -> None:
     result = evaluate_case(case)
 
     assert result.passed is False
+    assert result.risk_category == "general"
     assert result.intent == "create_task"
     assert result.language == "id"
     assert result.failure_category == "intent_mismatch"
@@ -81,6 +97,7 @@ def test_parser_evaluation_summary_counts_failure_categories() -> None:
     assert summary.failed == 1
     assert summary.by_intent["create_task"].failed == 1
     assert summary.by_language["id"].failed == 1
+    assert summary.by_risk_category["general"].failed == 1
     assert summary.by_failure_category == {"payload_mismatch": 1}
 
 
@@ -117,3 +134,4 @@ def test_parser_evaluation_cli_returns_zero_for_passing_fixture(
     assert '"failed": 0' in captured.out
     assert '"by_intent"' in captured.out
     assert '"by_language"' in captured.out
+    assert '"by_risk_category"' in captured.out

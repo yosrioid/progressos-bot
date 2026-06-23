@@ -48,14 +48,16 @@ Schema response format to Groq. Local Pydantic validation remains mandatory even
 structured output is enabled.
 
 Offline parser evaluation fixtures live in `tests/fixtures/parser_evaluation.json`.
+LLM security fixtures live in `tests/fixtures/llm_security_evaluation.json`.
 Run them with:
 
 ```bash
 make eval-parser
+progressos-bot-eval-parser tests/fixtures/llm_security_evaluation.json
 ```
 
 The evaluator prints total pass/fail counts plus breakdowns by intent, language, and
-failure category.
+risk category, and failure category.
 
 ## Supported Intent: create_task
 
