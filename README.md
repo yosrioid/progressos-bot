@@ -117,7 +117,8 @@ defaulting to `v1`.
 - Never trust Groq confidence alone; validate required fields and allowed enum values.
 - Never allow unknown fields in AI payloads.
 - Never let the Telegram bot bypass Laravel authorization or business logic.
-- Store enough audit context in ProgressOS later: original message, parsed payload, user ID, timestamp, and submit result.
+- Include audit notes on confirmed writes with source identity, parser summary, submit timestamp,
+  and idempotency key.
 
 ## Project Docs
 
