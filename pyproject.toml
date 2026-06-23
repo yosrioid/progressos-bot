@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 progressos-bot = "progressos_bot.main:main"
+progressos-bot-eval-parser = "progressos_bot.ai.evaluation:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

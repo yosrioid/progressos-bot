@@ -1,10 +1,15 @@
-.PHONY: install run test lint format typecheck check
+PYTHON ?= python3
+
+.PHONY: install run eval-parser test lint format typecheck check
 
 install:
-	python -m pip install -e ".[dev]"
+	$(PYTHON) -m pip install -e ".[dev]"
 
 run:
-	python -m progressos_bot.main
+	PYTHONPATH=src $(PYTHON) -m progressos_bot.main
+
+eval-parser:
+	PYTHONPATH=src $(PYTHON) -m progressos_bot.ai.evaluation tests/fixtures/parser_evaluation.json
 
 test:
 	pytest
@@ -19,4 +24,3 @@ typecheck:
 	mypy src
 
 check: lint typecheck test
-
