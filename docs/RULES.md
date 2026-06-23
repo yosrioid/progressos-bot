@@ -62,6 +62,7 @@ Reject the AI result when:
 - Required payload fields are missing.
 - Payload includes unknown keys.
 - The confirmation text is empty.
+- The intent is disabled by `CAPTURE_ENABLED_INTENTS`.
 
 ## Channel Conversation Rules
 
@@ -80,6 +81,7 @@ Reject the AI result when:
 13. Exhausted transient write failures are queued with the same idempotency key only when `RETRY_QUEUE_PATH` is configured.
 14. Queued retry submissions move to dead-letter storage after `RETRY_DEAD_LETTER_AFTER_ATTEMPTS`.
 15. Use `LOG_FORMAT=json` for structured operational logs in deployments that need machine-readable logs.
+16. Disabled capture intents must not create pending confirmations or call ProgressOS.
 
 ## ProgressOS Integration Rules
 

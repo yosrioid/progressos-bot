@@ -398,7 +398,7 @@ Features:
 - Language normalization for Indonesian and English.
 - Better date parsing with timezone awareness - implemented for parser `current_date`.
 - User preference defaults.
-- Admin-managed feature flags.
+- Admin-managed feature flags - implemented through `CAPTURE_ENABLED_INTENTS`.
 - Backward-compatible API versioning.
 
 Acceptance criteria:

@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from dataclasses import dataclass
 
 
@@ -25,6 +26,7 @@ class ConfigurationDiagnostics:
     app_env: str
     run_mode: str
     log_format: str
+    capture_enabled_intents: Collection[str]
     pending_store_enabled: bool
     retry_queue_enabled: bool
     allowlist_configured: bool
@@ -38,6 +40,7 @@ class ConfigurationDiagnostics:
                 f"Env: {self.app_env}",
                 f"Mode: {self.run_mode}",
                 f"Log: {self.log_format}",
+                f"Capture intents: {self._format_collection(self.capture_enabled_intents)}",
                 f"Pending store: {self._format_bool(self.pending_store_enabled)}",
                 f"Retry queue: {self._format_bool(self.retry_queue_enabled)}",
                 f"Allowlist: {self._format_bool(self.allowlist_configured)}",
@@ -49,6 +52,12 @@ class ConfigurationDiagnostics:
     @staticmethod
     def _format_bool(value: bool) -> str:
         return "configured" if value else "not configured"
+
+    @staticmethod
+    def _format_collection(values: Collection[str]) -> str:
+        if not values:
+            return "none"
+        return ", ".join(sorted(values))
 
 
 class AdminInfoService:

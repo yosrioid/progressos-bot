@@ -67,6 +67,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
                 app_env=settings.app_env,
                 run_mode=settings.telegram_run_mode,
                 log_format=settings.log_format,
+                capture_enabled_intents=settings.capture_enabled_intent_set(),
                 pending_store_enabled=bool(settings.pending_store_path),
                 retry_queue_enabled=bool(settings.retry_queue_path),
                 allowlist_configured=bool(settings.telegram_allowed_user_ids.strip()),
@@ -80,6 +81,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
         ),
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
         pending_store=pending_store,
+        enabled_capture_intents=settings.capture_enabled_intent_set(),
     )
 
 
