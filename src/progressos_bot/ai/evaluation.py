@@ -144,3 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     summary = evaluate_cases(cases, min_confidence=args.min_confidence)
     print(summary.model_dump_json(indent=2))
     return 0 if summary.failed == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

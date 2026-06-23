@@ -9,7 +9,7 @@ run:
 	PYTHONPATH=src $(PYTHON) -m progressos_bot.main
 
 eval-parser:
-	PYTHONPATH=src $(PYTHON) -m progressos_bot.ai.evaluation_main tests/fixtures/parser_evaluation.json
+	PYTHONPATH=src $(PYTHON) -m progressos_bot.ai.evaluation tests/fixtures/parser_evaluation.json
 
 test:
 	pytest
