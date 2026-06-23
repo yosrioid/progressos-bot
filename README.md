@@ -52,6 +52,7 @@ CONFIRMATION_TTL_SECONDS=900
 PENDING_STORE_PATH=./storage/pending.sqlite3
 RETRY_QUEUE_PATH=./storage/retry.sqlite3
 RETRY_DEAD_LETTER_AFTER_ATTEMPTS=5
+APP_TIMEZONE=Asia/Jakarta
 LOG_FORMAT=text
 ```
 
@@ -97,6 +98,8 @@ Planned intents:
 - `query_status`
 
 Unsupported or ambiguous messages must produce `unsupported`, not a guessed action.
+Relative dates such as "today" or "besok" are resolved from `APP_TIMEZONE`, which defaults
+to `Asia/Jakarta`.
 
 ## Safety Rules
 

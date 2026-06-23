@@ -12,6 +12,9 @@ candidate action that still requires confirmation.
 
 ## Parser Input
 
+`current_date` is resolved by the bot using `APP_TIMEZONE`, which defaults to
+`Asia/Jakarta`, before the message is sent to the parser.
+
 ```json
 {
   "current_date": "2026-06-19",
