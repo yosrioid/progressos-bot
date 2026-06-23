@@ -76,7 +76,8 @@ Features:
 - Support strict mode when the configured model supports it.
 - Fall back to best-effort structured output or JSON object parsing when strict mode is
   unavailable.
-- Add an offline parser evaluation fixture set for Indonesian and English messages.
+- Add an offline parser evaluation fixture set for Indonesian and English messages -
+  started.
 - Track parse outcome metrics by model, intent, language, and failure category.
 
 Current implementation slice:
@@ -84,6 +85,8 @@ Current implementation slice:
 - `GROQ_STRUCTURED_OUTPUT_MODE` selects `off`, `best_effort`, or `strict`.
 - The Groq parser client sends `response_format` when structured output is enabled.
 - The default remains `off` until evaluation results justify changing behavior.
+- `progressos-bot-eval-parser` evaluates offline parser output fixtures without calling
+  Groq.
 
 Acceptance criteria:
 

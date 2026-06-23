@@ -47,6 +47,13 @@ When `GROQ_STRUCTURED_OUTPUT_MODE` is `best_effort` or `strict`, the bot sends a
 Schema response format to Groq. Local Pydantic validation remains mandatory even when
 structured output is enabled.
 
+Offline parser evaluation fixtures live in `tests/fixtures/parser_evaluation.json`.
+Run them with:
+
+```bash
+make eval-parser
+```
+
 ## Supported Intent: create_task
 
 Required payload fields:
