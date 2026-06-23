@@ -30,12 +30,12 @@ def test_parser_security_evaluation_fixture_passes() -> None:
 
     summary = evaluate_cases(cases)
 
-    assert summary.total == 5
+    assert summary.total == 7
     assert summary.failed == 0
     assert summary.by_risk_category["prompt_injection"].passed == 1
     assert summary.by_risk_category["sensitive_information_disclosure"].passed == 1
-    assert summary.by_risk_category["excessive_agency"].passed == 1
-    assert summary.by_risk_category["insecure_output_handling"].passed == 1
+    assert summary.by_risk_category["excessive_agency"].passed == 2
+    assert summary.by_risk_category["insecure_output_handling"].passed == 2
     assert summary.by_risk_category["model_denial_of_service"].passed == 1
 
 
