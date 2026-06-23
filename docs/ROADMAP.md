@@ -2,17 +2,20 @@
 
 The detailed phase plan lives in [Product Phases](PHASES.md).
 
-## Current Phase
+## Current Status
 
-Phase 10: Product Hardening.
+Phase 10 bot-owned hardening is complete.
 
 Current focus:
 
-- Continue operational hardening.
+- Keep ProgressOS as the authorization source of truth.
+- Wait for a ProgressOS-owned server-side identity resolution contract.
 
 ## Next Milestones
 
 1. Move identity mapping server-side when ProgressOS exposes it.
+
+No bot-owned Phase 10 milestone is currently open.
 
 ## Change Rule
 

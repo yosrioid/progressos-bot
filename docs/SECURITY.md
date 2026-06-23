@@ -12,7 +12,10 @@ Never commit `.env`.
 
 ## Authorization
 
-The first version uses a single ProgressOS API token. Before production use, ProgressOS should map channel user IDs to ProgressOS users and enforce permissions server-side.
+The first version uses a single ProgressOS API token. Before production use, ProgressOS
+should map channel user IDs to ProgressOS users and enforce permissions server-side. That
+server-side mapping depends on a ProgressOS-owned identity resolution contract that is not
+available to the bot yet.
 
 Telegram access is bootstrapped with `TELEGRAM_ALLOWED_USER_IDS`, a comma-separated list
 of stable Telegram user IDs. An empty allowlist rejects all Telegram users. Display names
@@ -25,6 +28,8 @@ allowlist.
 Telegram-to-ProgressOS attribution is bootstrapped with `TELEGRAM_PROGRESSOS_USER_MAP`.
 Use comma-separated `telegram_user_id:progressos_user_id` pairs. The bot rejects read
 commands and confirmed write actions when the Telegram user is not mapped.
+This bootstrap mapping should be removed once ProgressOS exposes server-side identity
+resolution for channel users.
 
 Confirmed writes include audit notes with stable source IDs, mapped ProgressOS user ID,
 parser summary, submit timestamp, and idempotency key. Audit notes must not include bearer
