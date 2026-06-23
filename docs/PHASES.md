@@ -399,7 +399,7 @@ Features:
 - Better date parsing with timezone awareness - implemented for parser `current_date`.
 - User preference defaults - implemented for timezone and language.
 - Admin-managed feature flags - implemented through `CAPTURE_ENABLED_INTENTS`.
-- Backward-compatible API versioning.
+- Backward-compatible API versioning - implemented through `PROGRESSOS_API_VERSION`.
 
 Acceptance criteria:
 

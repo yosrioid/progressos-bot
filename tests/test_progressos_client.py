@@ -164,6 +164,7 @@ async def test_submit_action_posts_quick_capture_payload_with_idempotency_key() 
     assert len(seen_requests) == 1
     request = seen_requests[0]
     assert request.headers["Authorization"] == "Bearer secret-token"
+    assert request.headers["X-ProgressOS-API-Version"] == "v1"
     assert request.headers["Idempotency-Key"] == "fixed-key"
     assert request.url.path == "/api/v1/quick-capture"
     payload = json.loads(request.content)
@@ -555,6 +556,7 @@ async def test_get_standup_returns_concise_user_message() -> None:
     assert request.method == "GET"
     assert request.url.path == "/api/v1/standup"
     assert request.headers["Authorization"] == "Bearer secret-token"
+    assert request.headers["X-ProgressOS-API-Version"] == "v1"
     assert response.to_user_message() == (
         "Standup hari ini\n"
         "1. Ship quick capture (ProgressOS, done)\n"

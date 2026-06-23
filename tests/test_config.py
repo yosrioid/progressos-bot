@@ -21,6 +21,17 @@ def test_app_timezone_defaults_to_asia_jakarta() -> None:
     assert settings.app_timezone == "Asia/Jakarta"
 
 
+def test_progressos_api_version_defaults_to_v1() -> None:
+    settings = make_settings()
+
+    assert settings.progressos_api_version == "v1"
+
+
+def test_progressos_api_version_must_use_version_label() -> None:
+    with pytest.raises(ValidationError):
+        make_settings(progressos_api_version="1")
+
+
 def test_app_timezone_must_be_valid_iana_name() -> None:
     with pytest.raises(ValidationError, match="valid IANA timezone"):
         make_settings(app_timezone="Mars/Base")

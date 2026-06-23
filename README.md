@@ -45,6 +45,7 @@ TELEGRAM_BOT_TOKEN=...
 GROQ_API_KEY=...
 PROGRESSOS_BASE_URL=http://127.0.0.1:8000
 PROGRESSOS_API_TOKEN=...
+PROGRESSOS_API_VERSION=v1
 TELEGRAM_ALLOWED_USER_IDS=123456789
 TELEGRAM_REVOKED_USER_IDS=
 TELEGRAM_PROGRESSOS_USER_MAP=123456789:77
@@ -106,6 +107,8 @@ Parser language `unknown` is normalized to `APP_DEFAULT_LANGUAGE`, which default
 Capture intents can be limited with `CAPTURE_ENABLED_INTENTS`; disabled intents are rejected
 before confirmation and are not sent to ProgressOS.
 Very long capture messages are rejected before parser calls using `CAPTURE_MAX_INPUT_CHARS`.
+ProgressOS requests include `X-ProgressOS-API-Version` from `PROGRESSOS_API_VERSION`,
+defaulting to `v1`.
 
 ## Safety Rules
 

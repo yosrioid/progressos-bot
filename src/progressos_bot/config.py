@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     progressos_base_url: AnyHttpUrl
     progressos_api_token: str = Field(min_length=1)
     progressos_assistant_endpoint: str = "/api/v1/quick-capture"
+    progressos_api_version: str = Field(default="v1", pattern=r"^v[0-9]+$")
     telegram_allowed_user_ids: str = ""
     telegram_revoked_user_ids: str = ""
     telegram_progressos_user_map: str = ""
