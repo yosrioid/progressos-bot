@@ -27,6 +27,29 @@ def test_progressos_api_version_defaults_to_v1() -> None:
     assert settings.progressos_api_version == "v1"
 
 
+def test_groq_structured_output_mode_defaults_to_off() -> None:
+    settings = make_settings()
+
+    assert settings.groq_structured_output_mode == "off"
+
+
+def test_groq_structured_output_mode_accepts_best_effort() -> None:
+    settings = make_settings(groq_structured_output_mode="best_effort")
+
+    assert settings.groq_structured_output_mode == "best_effort"
+
+
+def test_groq_structured_output_mode_accepts_strict() -> None:
+    settings = make_settings(groq_structured_output_mode="strict")
+
+    assert settings.groq_structured_output_mode == "strict"
+
+
+def test_groq_structured_output_mode_rejects_unknown_value() -> None:
+    with pytest.raises(ValidationError):
+        make_settings(groq_structured_output_mode="json")
+
+
 def test_progressos_api_version_must_use_version_label() -> None:
     with pytest.raises(ValidationError):
         make_settings(progressos_api_version="1")

@@ -65,19 +65,25 @@ External references reviewed:
 
 ## Phase 11: Structured Model Contract
 
-Status: proposed.
+Status: in progress.
 
 Goal: reduce malformed model output and make model changes measurable.
 
 Features:
 
-- Generate JSON Schema from the existing Pydantic parser schemas.
-- Add Groq `response_format` support for structured outputs.
+- Generate JSON Schema from the existing parser schemas - started.
+- Add Groq `response_format` support for structured outputs - started.
 - Support strict mode when the configured model supports it.
 - Fall back to best-effort structured output or JSON object parsing when strict mode is
   unavailable.
 - Add an offline parser evaluation fixture set for Indonesian and English messages.
 - Track parse outcome metrics by model, intent, language, and failure category.
+
+Current implementation slice:
+
+- `GROQ_STRUCTURED_OUTPUT_MODE` selects `off`, `best_effort`, or `strict`.
+- The Groq parser client sends `response_format` when structured output is enabled.
+- The default remains `off` until evaluation results justify changing behavior.
 
 Acceptance criteria:
 
