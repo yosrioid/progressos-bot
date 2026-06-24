@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from progressos_bot.core.capture_flow import CaptureFlow
-from progressos_bot.core.guided_capture import GuidedCaptureDraft
+from progressos_bot.core.guided_capture import GuidedCaptureDraft, guided_capture_fields
 from progressos_bot.pending import InMemoryPendingActionStore
 from progressos_bot.schemas import (
     CreateTaskPayload,
@@ -125,6 +125,33 @@ def test_guided_capture_draft_apply_payload_edit_rejects_invalid_value() -> None
 
     with pytest.raises(ValidationError):
         draft.apply_payload_edit({"priority": "critical"})
+
+
+def test_guided_capture_fields_expose_task_date_and_priority_pickers() -> None:
+    fields = {field.key: field for field in guided_capture_fields("create_task")}
+
+    assert fields["due_date"].field_type == "date"
+    assert fields["due_date"].required is False
+    assert fields["priority"].field_type == "priority"
+    assert fields["priority"].options == ("low", "medium", "high", "urgent")
+
+
+def test_guided_capture_fields_expose_blocker_severity_picker() -> None:
+    fields = {field.key: field for field in guided_capture_fields("create_blocker")}
+
+    assert fields["severity"].field_type == "priority"
+    assert fields["severity"].label == "Severity"
+    assert fields["severity"].options == ("low", "medium", "high", "urgent")
+
+
+def test_guided_capture_fields_expose_work_date_duration_and_project_inputs() -> None:
+    fields = {field.key: field for field in guided_capture_fields("log_work")}
+
+    assert fields["date"].field_type == "date"
+    assert fields["date"].required is False
+    assert fields["duration_minutes"].field_type == "duration_minutes"
+    assert fields["project_name"].field_type == "text"
+    assert fields["project_name"].required is False
 
 
 @pytest.mark.asyncio

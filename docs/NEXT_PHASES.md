@@ -206,7 +206,7 @@ Goal: improve capture quality when free-form text is too ambiguous.
 Candidate features:
 
 - Telegram Mini App or guided inline flow for structured capture - started.
-- Date, duration, project, priority, and severity pickers.
+- Date, duration, project, priority, and severity pickers - started.
 - Draft preview before confirmation - started.
 - "Edit draft" flow before submission - started.
 - Reuse the same `CaptureFlow` and ProgressOS client; do not duplicate business logic in
@@ -223,6 +223,8 @@ Current implementation slice:
 - Guided drafts can render channel-neutral preview lines before confirmation.
 - Guided payload edits create a new validated draft and still require confirmation before
   ProgressOS submission.
+- `guided_capture_fields()` exposes channel-neutral field metadata for date, duration,
+  project, priority, and severity controls.
 
 Acceptance criteria:
 

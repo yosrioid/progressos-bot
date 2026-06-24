@@ -10,6 +10,7 @@ from progressos_bot.schemas import (
     LogDailyProgressPayload,
     LogWorkPayload,
     ParsedAction,
+    Priority,
 )
 
 GuidedCaptureIntent = Literal[
@@ -26,6 +27,17 @@ GuidedCapturePayload = (
     | LogDailyProgressPayload
     | CaptureLearningPayload
 )
+GuidedCaptureFieldType = Literal["text", "date", "duration_minutes", "priority"]
+
+
+class GuidedCaptureField(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    key: str = Field(min_length=1, max_length=80)
+    label: str = Field(min_length=1, max_length=120)
+    field_type: GuidedCaptureFieldType
+    required: bool = True
+    options: tuple[str, ...] = ()
 
 
 class GuidedCaptureDraft(BaseModel):
@@ -111,3 +123,101 @@ class GuidedCaptureDraft(BaseModel):
 
 def _format_field_label(value: str) -> str:
     return value.replace("_", " ").title()
+
+
+def guided_capture_fields(intent: GuidedCaptureIntent) -> tuple[GuidedCaptureField, ...]:
+    return _GUIDED_CAPTURE_FIELDS[intent]
+
+
+_PRIORITY_OPTIONS: tuple[Priority, ...] = ("low", "medium", "high", "urgent")
+_GUIDED_CAPTURE_FIELDS: dict[GuidedCaptureIntent, tuple[GuidedCaptureField, ...]] = {
+    "create_task": (
+        GuidedCaptureField(key="title", label="Title", field_type="text"),
+        GuidedCaptureField(
+            key="description",
+            label="Description",
+            field_type="text",
+            required=False,
+        ),
+        GuidedCaptureField(
+            key="due_date",
+            label="Due date",
+            field_type="date",
+            required=False,
+        ),
+        GuidedCaptureField(
+            key="priority",
+            label="Priority",
+            field_type="priority",
+            options=_PRIORITY_OPTIONS,
+        ),
+    ),
+    "create_blocker": (
+        GuidedCaptureField(key="title", label="Title", field_type="text"),
+        GuidedCaptureField(
+            key="description",
+            label="Description",
+            field_type="text",
+            required=False,
+        ),
+        GuidedCaptureField(
+            key="severity",
+            label="Severity",
+            field_type="priority",
+            options=_PRIORITY_OPTIONS,
+        ),
+    ),
+    "log_work": (
+        GuidedCaptureField(key="title", label="Title", field_type="text"),
+        GuidedCaptureField(
+            key="description",
+            label="Description",
+            field_type="text",
+            required=False,
+        ),
+        GuidedCaptureField(key="date", label="Date", field_type="date", required=False),
+        GuidedCaptureField(
+            key="duration_minutes",
+            label="Duration",
+            field_type="duration_minutes",
+        ),
+        GuidedCaptureField(
+            key="project_name",
+            label="Project",
+            field_type="text",
+            required=False,
+        ),
+    ),
+    "log_daily_progress": (
+        GuidedCaptureField(key="title", label="Title", field_type="text"),
+        GuidedCaptureField(
+            key="description",
+            label="Description",
+            field_type="text",
+            required=False,
+        ),
+        GuidedCaptureField(key="date", label="Date", field_type="date", required=False),
+        GuidedCaptureField(
+            key="project_name",
+            label="Project",
+            field_type="text",
+            required=False,
+        ),
+    ),
+    "capture_learning": (
+        GuidedCaptureField(key="title", label="Title", field_type="text"),
+        GuidedCaptureField(
+            key="description",
+            label="Description",
+            field_type="text",
+            required=False,
+        ),
+        GuidedCaptureField(key="date", label="Date", field_type="date", required=False),
+        GuidedCaptureField(
+            key="project_name",
+            label="Project",
+            field_type="text",
+            required=False,
+        ),
+    ),
+}
