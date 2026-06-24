@@ -65,22 +65,23 @@ External references reviewed:
 
 ## Phase 11: Structured Model Contract
 
-Status: in progress.
+Status: complete for current bot-owned scope.
 
 Goal: reduce malformed model output and make model changes measurable.
 
 Features:
 
-- Generate JSON Schema from the existing parser schemas - started.
-- Add Groq `response_format` support for structured outputs - started.
-- Support strict mode when the configured model supports it.
+- Generate JSON Schema from the existing parser schemas - implemented.
+- Add Groq `response_format` support for structured outputs - implemented.
+- Support strict mode when the configured model supports it - implemented.
 - Fall back to best-effort structured output or JSON object parsing when strict mode is
-  unavailable.
+  unavailable - implemented through explicit configuration.
 - Add an offline parser evaluation fixture set for Indonesian and English messages -
-  started.
-- Track parse outcome metrics by model, intent, language, and failure category - started.
+  implemented.
+- Track parse outcome metrics by model, intent, language, and failure category -
+  implemented in offline evaluation summaries.
 
-Current implementation slice:
+Completed implementation:
 
 - `GROQ_STRUCTURED_OUTPUT_MODE` selects `off`, `best_effort`, or `strict`.
 - The Groq parser client sends `response_format` when structured output is enabled.
@@ -89,6 +90,10 @@ Current implementation slice:
   Groq.
 - Evaluation summaries include pass/fail breakdowns by model, intent, language, risk
   category, and failure category.
+- Structured schema tests cover JSON Schema wrapping, strict mode, required fields, and
+  unknown-field rejection.
+- Groq client tests cover strict response-format request construction and disabled
+  structured-output fallback.
 
 Acceptance criteria:
 
@@ -99,6 +104,16 @@ Acceptance criteria:
 - Default model is not changed until evaluation results are documented.
 
 Suggested release: `v0.2.0`.
+
+Completion notes:
+
+- CI runs parser validation, structured-schema tests, Groq request construction tests, and
+  offline evaluator fixture tests through `make check`.
+- Offline fixture results are documented by the evaluator output shape; no live model
+  benchmark has been recorded in the repo.
+- The default model and default structured-output mode remain unchanged:
+  `GROQ_MODEL=llama-3.3-70b-versatile` and `GROQ_STRUCTURED_OUTPUT_MODE=off`.
+- Live model comparison and default model changes should be a future release slice.
 
 ## Phase 12: LLM Security Regression Program
 
