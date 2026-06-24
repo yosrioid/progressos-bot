@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from progressos_bot.retry_queue import (
@@ -25,6 +26,16 @@ def main(argv: list[str] | None = None) -> int:
         "dead-letters",
         help="Print redacted dead-letter metadata as JSON.",
     )
+    requeue_parser = subparsers.add_parser(
+        "requeue",
+        help="Move one dead-letter entry back to the retry queue.",
+    )
+    _add_recovery_arguments(requeue_parser)
+    discard_parser = subparsers.add_parser(
+        "discard",
+        help="Delete one dead-letter entry after operator confirmation.",
+    )
+    _add_recovery_arguments(discard_parser)
     args = parser.parse_args(argv)
 
     queue = SQLiteRetryQueue(path=str(args.path))
@@ -41,9 +52,74 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "requeue":
+        _require_confirmation(parser, args.command, args.idempotency_key, args.confirm)
+        queued = queue.requeue_dead_letter(args.idempotency_key)
+        if queued is None:
+            print(
+                f"dead-letter not found: {args.idempotency_key}",
+                file=sys.stderr,
+            )
+            return 1
+        print(
+            json.dumps(
+                {
+                    "action": "requeued",
+                    "idempotency_key": queued.idempotency_key,
+                    "attempt_count": queued.attempt_count,
+                },
+                indent=2,
+            )
+        )
+        return 0
+    if args.command == "discard":
+        _require_confirmation(parser, args.command, args.idempotency_key, args.confirm)
+        discarded = queue.discard_dead_letter(args.idempotency_key)
+        if discarded is None:
+            print(
+                f"dead-letter not found: {args.idempotency_key}",
+                file=sys.stderr,
+            )
+            return 1
+        print(
+            json.dumps(
+                {
+                    "action": "discarded",
+                    "idempotency_key": discarded.idempotency_key,
+                    "attempt_count": discarded.attempt_count,
+                },
+                indent=2,
+            )
+        )
+        return 0
 
     parser.error(f"Unsupported command: {args.command}")
     return 2
+
+
+def _add_recovery_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--idempotency-key",
+        required=True,
+        help="Dead-letter idempotency key to recover.",
+    )
+    parser.add_argument(
+        "--confirm",
+        required=True,
+        help="Repeat the idempotency key to confirm the destructive operation.",
+    )
+
+
+def _require_confirmation(
+    parser: argparse.ArgumentParser,
+    command: str,
+    idempotency_key: str,
+    confirmation: str,
+) -> None:
+    if confirmation != idempotency_key:
+        parser.error(
+            f"{command} requires --confirm to exactly match --idempotency-key"
+        )
 
 
 if __name__ == "__main__":

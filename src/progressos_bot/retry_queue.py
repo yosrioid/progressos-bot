@@ -144,6 +144,24 @@ class InMemoryRetryQueue:
     def list_dead_letters(self) -> list[DeadLetteredProgressOSSubmission]:
         return list(self._dead_letters.values())
 
+    def requeue_dead_letter(self, idempotency_key: str) -> QueuedProgressOSSubmission | None:
+        dead_letter = self._dead_letters.pop(idempotency_key, None)
+        if dead_letter is None:
+            return None
+
+        queued = QueuedProgressOSSubmission(
+            idempotency_key=dead_letter.idempotency_key,
+            quick_capture=dead_letter.quick_capture,
+            queued_at=dead_letter.queued_at,
+            attempt_count=dead_letter.attempt_count,
+            last_error=dead_letter.last_error,
+        )
+        self._submissions[idempotency_key] = queued
+        return queued
+
+    def discard_dead_letter(self, idempotency_key: str) -> DeadLetteredProgressOSSubmission | None:
+        return self._dead_letters.pop(idempotency_key, None)
+
     def _now(self) -> datetime:
         value = self._clock()
         if value.tzinfo is None:
@@ -316,19 +334,83 @@ class SQLiteRetryQueue:
 
         submissions: list[DeadLetteredProgressOSSubmission] = []
         for row in rows:
-            submissions.append(
-                DeadLetteredProgressOSSubmission(
-                    idempotency_key=row["idempotency_key"],
-                    quick_capture=ProgressOSQuickCaptureRequest.model_validate_json(
-                        row["quick_capture_json"]
-                    ),
-                    queued_at=self._parse_datetime(row["queued_at"]),
-                    dead_lettered_at=self._parse_datetime(row["dead_lettered_at"]),
-                    attempt_count=row["attempt_count"],
-                    last_error=row["last_error"],
-                )
-            )
+            submissions.append(self._dead_letter_from_row(row))
         return submissions
+
+    def requeue_dead_letter(self, idempotency_key: str) -> QueuedProgressOSSubmission | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    idempotency_key,
+                    quick_capture_json,
+                    queued_at,
+                    dead_lettered_at,
+                    attempt_count,
+                    last_error
+                FROM retry_dead_letters
+                WHERE idempotency_key = ?
+                """,
+                (idempotency_key,),
+            ).fetchone()
+            if row is None:
+                return None
+
+            queued = self._queued_from_dead_letter_row(row)
+            connection.execute(
+                """
+                INSERT INTO retry_submissions (
+                    idempotency_key,
+                    quick_capture_json,
+                    queued_at,
+                    attempt_count,
+                    last_error
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(idempotency_key) DO UPDATE SET
+                    quick_capture_json = excluded.quick_capture_json,
+                    queued_at = excluded.queued_at,
+                    attempt_count = excluded.attempt_count,
+                    last_error = excluded.last_error
+                """,
+                (
+                    queued.idempotency_key,
+                    queued.quick_capture.model_dump_json(),
+                    self._format_datetime(queued.queued_at),
+                    queued.attempt_count,
+                    queued.last_error,
+                ),
+            )
+            connection.execute(
+                "DELETE FROM retry_dead_letters WHERE idempotency_key = ?",
+                (idempotency_key,),
+            )
+            return queued
+
+    def discard_dead_letter(self, idempotency_key: str) -> DeadLetteredProgressOSSubmission | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    idempotency_key,
+                    quick_capture_json,
+                    queued_at,
+                    dead_lettered_at,
+                    attempt_count,
+                    last_error
+                FROM retry_dead_letters
+                WHERE idempotency_key = ?
+                """,
+                (idempotency_key,),
+            ).fetchone()
+            if row is None:
+                return None
+
+            dead_letter = self._dead_letter_from_row(row)
+            connection.execute(
+                "DELETE FROM retry_dead_letters WHERE idempotency_key = ?",
+                (idempotency_key,),
+            )
+            return dead_letter
 
     def _ensure_schema(self) -> None:
         with self._connect() as connection:
@@ -360,6 +442,29 @@ class SQLiteRetryQueue:
         connection = sqlite3.connect(self._path)
         connection.row_factory = sqlite3.Row
         return connection
+
+    def _queued_from_dead_letter_row(self, row: sqlite3.Row) -> QueuedProgressOSSubmission:
+        return QueuedProgressOSSubmission(
+            idempotency_key=row["idempotency_key"],
+            quick_capture=ProgressOSQuickCaptureRequest.model_validate_json(
+                row["quick_capture_json"]
+            ),
+            queued_at=self._parse_datetime(row["queued_at"]),
+            attempt_count=row["attempt_count"],
+            last_error=row["last_error"],
+        )
+
+    def _dead_letter_from_row(self, row: sqlite3.Row) -> DeadLetteredProgressOSSubmission:
+        return DeadLetteredProgressOSSubmission(
+            idempotency_key=row["idempotency_key"],
+            quick_capture=ProgressOSQuickCaptureRequest.model_validate_json(
+                row["quick_capture_json"]
+            ),
+            queued_at=self._parse_datetime(row["queued_at"]),
+            dead_lettered_at=self._parse_datetime(row["dead_lettered_at"]),
+            attempt_count=row["attempt_count"],
+            last_error=row["last_error"],
+        )
 
     def _now(self) -> datetime:
         value = self._clock()

@@ -73,6 +73,22 @@ Both commands print JSON. Dead-letter output is metadata-only: idempotency key, 
 type, redacted title, timestamps, attempt count, and redacted last error. It does not print
 the full quick-capture payload, request headers, bearer tokens, or environment values.
 
+After confirming the exact idempotency key from `dead-letters`, operators can move one
+entry back to the retry queue or discard it:
+
+```bash
+progressos-bot-retry-queue --path "$RETRY_QUEUE_PATH" requeue \
+  --idempotency-key "$IDEMPOTENCY_KEY" \
+  --confirm "$IDEMPOTENCY_KEY"
+
+progressos-bot-retry-queue --path "$RETRY_QUEUE_PATH" discard \
+  --idempotency-key "$IDEMPOTENCY_KEY" \
+  --confirm "$IDEMPOTENCY_KEY"
+```
+
+`requeue` preserves the original idempotency key. Both mutation commands fail before
+touching the dead-letter entry unless `--confirm` exactly matches `--idempotency-key`.
+
 ## Reverse Proxy
 
 Terminate TLS at the reverse proxy, then forward only the configured webhook path to the

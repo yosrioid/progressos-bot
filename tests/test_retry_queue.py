@@ -1,6 +1,8 @@
 import json
 from datetime import UTC, datetime
 
+import pytest
+
 from progressos_bot.retry_queue import (
     DeadLetteredProgressOSSubmission,
     InMemoryRetryQueue,
@@ -143,6 +145,48 @@ def test_sqlite_retry_queue_rehydrates_dead_letter(tmp_path) -> None:
     ]
 
 
+def test_in_memory_retry_queue_requeues_dead_letter_with_same_idempotency_key() -> None:
+    queue = InMemoryRetryQueue(dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    queued = queue.requeue_dead_letter("fixed-key")
+
+    assert queued is not None
+    assert queued.idempotency_key == "fixed-key"
+    assert queued.attempt_count == 2
+    assert queue.list_dead_letters() == []
+    assert queue.list_all() == [queued]
+
+
+def test_sqlite_retry_queue_requeues_dead_letter_with_same_idempotency_key(tmp_path) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    queued = queue.requeue_dead_letter("fixed-key")
+
+    assert queued is not None
+    assert queued.idempotency_key == "fixed-key"
+    assert queued.attempt_count == 2
+
+    second_queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    assert second_queue.list_dead_letters() == []
+    assert second_queue.list_all() == [queued]
+
+
+def test_sqlite_retry_queue_discards_dead_letter(tmp_path) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    discarded = queue.discard_dead_letter("fixed-key")
+
+    assert discarded is not None
+    assert discarded.idempotency_key == "fixed-key"
+    assert queue.list_dead_letters() == []
+    assert queue.list_all() == []
+
+
 def test_retry_queue_summary_counts_queued_and_dead_letters() -> None:
     queue = InMemoryRetryQueue(dead_letter_after_attempts=3)
     queue.enqueue(make_submission())
@@ -251,3 +295,84 @@ def test_retry_queue_cli_prints_redacted_dead_letter_json(tmp_path, capsys) -> N
         }
     ]
     assert "should-not-print" not in captured.out
+
+
+def test_retry_queue_cli_requeue_requires_matching_confirmation(tmp_path) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    with pytest.raises(SystemExit) as exc_info:
+        retry_queue_cli_main(
+            [
+                "--path",
+                str(path),
+                "requeue",
+                "--idempotency-key",
+                "fixed-key",
+                "--confirm",
+                "wrong-key",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+    assert SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2).list_all() == []
+
+
+def test_retry_queue_cli_requeues_dead_letter(tmp_path, capsys) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    exit_code = retry_queue_cli_main(
+        [
+            "--path",
+            str(path),
+            "requeue",
+            "--idempotency-key",
+            "fixed-key",
+            "--confirm",
+            "fixed-key",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert json.loads(captured.out) == {
+        "action": "requeued",
+        "idempotency_key": "fixed-key",
+        "attempt_count": 2,
+    }
+    second_queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    assert second_queue.list_dead_letters() == []
+    assert len(second_queue.list_all()) == 1
+    assert second_queue.list_all()[0].idempotency_key == "fixed-key"
+
+
+def test_retry_queue_cli_discards_dead_letter(tmp_path, capsys) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(make_submission())
+
+    exit_code = retry_queue_cli_main(
+        [
+            "--path",
+            str(path),
+            "discard",
+            "--idempotency-key",
+            "fixed-key",
+            "--confirm",
+            "fixed-key",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert json.loads(captured.out) == {
+        "action": "discarded",
+        "idempotency_key": "fixed-key",
+        "attempt_count": 2,
+    }
+    second_queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    assert second_queue.list_dead_letters() == []
+    assert second_queue.list_all() == []
