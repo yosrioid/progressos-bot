@@ -2,6 +2,7 @@ from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+from progressos_bot.core.input_guard import InputGuard, NoopInputGuard
 from progressos_bot.observability.correlation import CorrelationIdFactory
 from progressos_bot.observability.metrics import MetricsSink, NoopMetricsSink
 from progressos_bot.pending import PendingActionStore
@@ -56,12 +57,14 @@ class CaptureFlow:
         metrics: MetricsSink | None = None,
         enabled_intents: Collection[str] | None = None,
         max_input_chars: int = 2000,
+        input_guard: InputGuard | None = None,
     ) -> None:
         self._parser = parser
         self._progressos = progressos
         self._pending = pending
         self._new_correlation_id = correlation_id_factory or CorrelationIdFactory().new
         self._metrics = metrics or NoopMetricsSink()
+        self._input_guard = input_guard or NoopInputGuard()
         self._enabled_intents = (
             CAPTURE_INTENTS if enabled_intents is None else frozenset(enabled_intents)
         )
@@ -77,6 +80,19 @@ class CaptureFlow:
                     "Input terlalu panjang. "
                     f"Maksimal {self._max_input_chars} karakter."
                 ),
+                correlation_id=correlation_id,
+            )
+
+        guard_decision = self._input_guard.evaluate(original_text)
+        if not guard_decision.allowed:
+            self._metrics.increment(
+                "capture_parse_total",
+                outcome="guard_blocked",
+                reason=guard_decision.reason,
+            )
+            return CaptureDraftResult(
+                status="unsupported",
+                user_message=guard_decision.user_message,
                 correlation_id=correlation_id,
             )
 

@@ -116,7 +116,7 @@ Features:
 - Add tests proving the model cannot enable disabled intents - started.
 - Add tests proving parser output cannot add unauthorized API targets, headers, or
   ProgressOS paths - started.
-- Add optional pre-parser guard mode for high-risk deployments.
+- Add optional pre-parser guard mode for high-risk deployments - started.
 - Document operational guidance for secret rotation and model-key scope.
 
 Acceptance criteria:
@@ -138,6 +138,8 @@ Current implementation slice:
   draft and no ProgressOS submit.
 - Payload validation tests reject parser-supplied API URLs, headers, endpoints, and
   ProgressOS paths.
+- `CAPTURE_PRE_PARSER_GUARD_MODE=basic` blocks obvious prompt-injection and
+  secret-exfiltration text before parser calls.
 
 ## Phase 13: ProgressOS-Owned Identity Resolution
 

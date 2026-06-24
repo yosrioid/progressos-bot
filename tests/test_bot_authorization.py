@@ -61,6 +61,7 @@ def make_bot(
                 run_mode="polling",
                 log_format="text",
                 capture_enabled_intents={"create_task"},
+                capture_pre_parser_guard_mode="off",
                 pending_store_enabled=False,
                 retry_queue_enabled=False,
                 allowlist_configured=bool(allowed),

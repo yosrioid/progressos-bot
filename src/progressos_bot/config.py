@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = Field(default=60, gt=0)
     capture_enabled_intents: str = DEFAULT_CAPTURE_ENABLED_INTENTS
     capture_max_input_chars: int = Field(default=2000, gt=0, le=5000)
+    capture_pre_parser_guard_mode: Literal["off", "basic"] = "off"
 
     app_env: Literal["local", "staging", "production"] = "local"
     app_timezone: str = "Asia/Jakarta"

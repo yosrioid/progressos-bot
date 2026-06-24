@@ -63,6 +63,12 @@ include tokens, headers, environment values, or debug payloads.
 
 AI output is a draft, not an instruction. The bot validates the shape and asks for confirmation, then ProgressOS validates business rules again.
 
+`CAPTURE_PRE_PARSER_GUARD_MODE=basic` enables an optional pre-parser guard for high-risk
+deployments. It blocks obvious prompt-injection, system-prompt exfiltration, and
+secret-exfiltration text before the message is sent to the model. Keep local schema
+validation, explicit confirmation, ProgressOS authorization, and secret redaction enabled;
+the guard is only an early filter.
+
 ## Logging
 
 Logs may include normal error messages, but must not include API keys or bearer tokens. Be careful when logging HTTP request headers or full exception objects from external clients.
