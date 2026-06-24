@@ -29,6 +29,7 @@ dev = [
 [project.scripts]
 progressos-bot = "progressos_bot.main:main"
 progressos-bot-eval-parser = "progressos_bot.ai.evaluation:main"
+progressos-bot-retry-queue = "progressos_bot.retry_queue_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

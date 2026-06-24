@@ -2,10 +2,11 @@ import sqlite3
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from progressos_bot.observability.redaction import redact_text
 from progressos_bot.schemas import ProgressOSQuickCaptureRequest
 
 
@@ -30,12 +31,61 @@ class DeadLetteredProgressOSSubmission(BaseModel):
     last_error: str = Field(min_length=1, max_length=500)
 
 
+class RetryQueueCounts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    queued_count: int = Field(ge=0)
+    dead_letter_count: int = Field(ge=0)
+
+
+class RetryQueueSubmissionSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["queued", "dead_lettered"]
+    idempotency_key: str = Field(min_length=1)
+    capture_type: str = Field(min_length=1)
+    title: str = Field(min_length=1, max_length=180)
+    queued_at: datetime
+    dead_lettered_at: datetime | None = None
+    attempt_count: int = Field(ge=1)
+    last_error: str = Field(min_length=1, max_length=500)
+
+
 class RetryQueue(Protocol):
     def enqueue(self, submission: QueuedProgressOSSubmission) -> None: ...
 
     def list_all(self) -> list[QueuedProgressOSSubmission]: ...
 
     def list_dead_letters(self) -> list[DeadLetteredProgressOSSubmission]: ...
+
+
+def summarize_retry_queue(queue: RetryQueue) -> RetryQueueCounts:
+    return RetryQueueCounts(
+        queued_count=len(queue.list_all()),
+        dead_letter_count=len(queue.list_dead_letters()),
+    )
+
+
+def summarize_dead_letters(queue: RetryQueue) -> list[RetryQueueSubmissionSummary]:
+    return [
+        _summarize_dead_letter(submission)
+        for submission in queue.list_dead_letters()
+    ]
+
+
+def _summarize_dead_letter(
+    submission: DeadLetteredProgressOSSubmission,
+) -> RetryQueueSubmissionSummary:
+    return RetryQueueSubmissionSummary(
+        status="dead_lettered",
+        idempotency_key=submission.idempotency_key,
+        capture_type=submission.quick_capture.type,
+        title=redact_text(submission.quick_capture.title),
+        queued_at=submission.queued_at,
+        dead_lettered_at=submission.dead_lettered_at,
+        attempt_count=submission.attempt_count,
+        last_error=redact_text(submission.last_error),
+    )
 
 
 class InMemoryRetryQueue:

@@ -19,6 +19,15 @@ def test_redact_text_masks_token_assignments() -> None:
     assert f"telegram_token={REDACTED}" in redacted
 
 
+def test_redact_text_prioritizes_token_assignment_over_bearer_word() -> None:
+    value = "Rotate bearer token=secret-value"
+
+    redacted = redact_text(value)
+
+    assert "secret-value" not in redacted
+    assert redacted == f"Rotate bearer token={REDACTED}"
+
+
 def test_redact_mapping_masks_secret_fields() -> None:
     redacted = redact_mapping(
         {

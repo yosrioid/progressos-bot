@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 
 from progressos_bot.retry_queue import (
@@ -5,7 +6,10 @@ from progressos_bot.retry_queue import (
     InMemoryRetryQueue,
     QueuedProgressOSSubmission,
     SQLiteRetryQueue,
+    summarize_dead_letters,
+    summarize_retry_queue,
 )
+from progressos_bot.retry_queue_cli import main as retry_queue_cli_main
 from progressos_bot.schemas import ProgressOSQuickCaptureRequest
 
 
@@ -137,3 +141,113 @@ def test_sqlite_retry_queue_rehydrates_dead_letter(tmp_path) -> None:
             last_error="TimeoutException",
         )
     ]
+
+
+def test_retry_queue_summary_counts_queued_and_dead_letters() -> None:
+    queue = InMemoryRetryQueue(dead_letter_after_attempts=3)
+    queue.enqueue(make_submission())
+    queue.enqueue(
+        QueuedProgressOSSubmission(
+            idempotency_key="dead-key",
+            quick_capture=ProgressOSQuickCaptureRequest(
+                type="task",
+                title="Fix webhook retry",
+            ),
+            queued_at=datetime(2026, 6, 22, 9, 31, tzinfo=UTC),
+            attempt_count=3,
+            last_error="HTTP 503",
+        )
+    )
+
+    counts = summarize_retry_queue(queue)
+
+    assert counts.queued_count == 1
+    assert counts.dead_letter_count == 1
+
+
+def test_dead_letter_summary_redacts_operator_metadata() -> None:
+    now = datetime(2026, 6, 22, 9, 32, tzinfo=UTC)
+    queue = InMemoryRetryQueue(dead_letter_after_attempts=3, clock=lambda: now)
+    queue.enqueue(
+        QueuedProgressOSSubmission(
+            idempotency_key="fixed-key",
+            quick_capture=ProgressOSQuickCaptureRequest(
+                type="task",
+                title="Rotate bearer token=secret-value",
+                notes="Original message includes token=should-not-print",
+            ),
+            queued_at=datetime(2026, 6, 22, 9, 30, tzinfo=UTC),
+            attempt_count=3,
+            last_error="authorization: Bearer abc.def",
+        )
+    )
+
+    summaries = summarize_dead_letters(queue)
+
+    assert len(summaries) == 1
+    assert summaries[0].status == "dead_lettered"
+    assert summaries[0].idempotency_key == "fixed-key"
+    assert summaries[0].capture_type == "task"
+    assert summaries[0].title == "Rotate bearer token=[redacted]"
+    assert summaries[0].queued_at == datetime(2026, 6, 22, 9, 30, tzinfo=UTC)
+    assert summaries[0].dead_lettered_at == now
+    assert summaries[0].attempt_count == 3
+    assert summaries[0].last_error == "authorization: Bearer [redacted]"
+    assert "should-not-print" not in summaries[0].model_dump_json()
+
+
+def test_retry_queue_cli_prints_status_json(tmp_path, capsys) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path))
+    queue.enqueue(make_submission())
+
+    exit_code = retry_queue_cli_main(["--path", str(path), "status"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert json.loads(captured.out) == {
+        "queued_count": 1,
+        "dead_letter_count": 0,
+    }
+
+
+def test_retry_queue_cli_prints_redacted_dead_letter_json(tmp_path, capsys) -> None:
+    path = tmp_path / "retry.sqlite3"
+    now = datetime(2026, 6, 22, 9, 32, tzinfo=UTC)
+    queue = SQLiteRetryQueue(
+        path=str(path),
+        dead_letter_after_attempts=3,
+        clock=lambda: now,
+    )
+    queue.enqueue(
+        QueuedProgressOSSubmission(
+            idempotency_key="fixed-key",
+            quick_capture=ProgressOSQuickCaptureRequest(
+                type="task",
+                title="Rotate bearer token=secret-value",
+                notes="Original message includes token=should-not-print",
+            ),
+            queued_at=datetime(2026, 6, 22, 9, 30, tzinfo=UTC),
+            attempt_count=3,
+            last_error="authorization: Bearer abc.def",
+        )
+    )
+
+    exit_code = retry_queue_cli_main(["--path", str(path), "dead-letters"])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    parsed = json.loads(captured.out)
+    assert parsed == [
+        {
+            "status": "dead_lettered",
+            "idempotency_key": "fixed-key",
+            "capture_type": "task",
+            "title": "Rotate bearer token=[redacted]",
+            "queued_at": "2026-06-22T09:30:00Z",
+            "dead_lettered_at": "2026-06-22T09:32:00Z",
+            "attempt_count": 3,
+            "last_error": "authorization: Bearer [redacted]",
+        }
+    ]
+    assert "should-not-print" not in captured.out
