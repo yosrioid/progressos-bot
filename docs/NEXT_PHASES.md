@@ -308,17 +308,21 @@ Suggested release: `v0.4.x` or later.
 
 ## Phase 17: Release And Supply-Chain Hardening
 
-Status: proposed.
+Status: complete for current repo-owned scope.
 
 Goal: reduce release and CI supply-chain risk.
 
 Features:
 
-- Set explicit minimal `permissions` in GitHub Actions workflows.
-- Evaluate pinning third-party GitHub Actions to full commit SHAs.
-- Add dependency audit workflow or documented dependency review process.
-- Add a release checklist for tag target, changelog, CI result, and rollback notes.
-- Add optional signed tags if the release environment supports them.
+- Set explicit minimal `permissions` in GitHub Actions workflows - implemented.
+- Evaluate pinning third-party GitHub Actions to full commit SHAs - documented in the
+  release checklist.
+- Add dependency audit workflow or documented dependency review process - implemented with
+  Dependabot config and a scheduled/manual dependency audit workflow.
+- Add a release checklist for tag target, changelog, CI result, and rollback notes -
+  implemented in `docs/RELEASE_CHECKLIST.md`.
+- Add optional signed tags if the release environment supports them - documented in the
+  release checklist.
 
 Acceptance criteria:
 
