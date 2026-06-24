@@ -60,9 +60,9 @@ External references reviewed:
    inputs, theme-aware UI, and `sendData` back to the bot for complex capture forms.
 
 6. Production operations can improve.
-   Retry queue and dead-letter storage exist. Operators now have initial command-line
-   tooling to inspect counts and redacted dead-letter metadata, but requeue, discard, and
-   diagnostic exports still need safe workflows.
+   Retry queue and dead-letter storage exist. Operators now have command-line tooling to
+   inspect counts, inspect redacted dead-letter metadata, recover or discard dead-letter
+   entries with confirmation, and export redacted diagnostic bundles.
 
 ## Phase 11: Structured Model Contract
 
@@ -253,7 +253,7 @@ Suggested release: `v0.3.x`.
 
 ## Phase 15: Operator Recovery Tools
 
-Status: in progress.
+Status: complete for current bot-owned scope.
 
 Goal: make production failures easier to inspect and recover without database edits.
 
@@ -266,9 +266,10 @@ Features:
 - Requeue or discard dead-letter entries with explicit operator confirmation -
   implemented with `progressos-bot-retry-queue requeue` and
   `progressos-bot-retry-queue discard`.
-- Export redacted diagnostic bundle for a correlation ID.
+- Export redacted diagnostic bundle for a correlation ID - implemented with
+  `progressos-bot-retry-queue diagnostic-bundle`.
 - Document production runbook for retries, dead letters, webhook health, and dependency
-  outage triage.
+  outage triage - implemented in `docs/DEPLOYMENT.md`.
 
 Acceptance criteria:
 

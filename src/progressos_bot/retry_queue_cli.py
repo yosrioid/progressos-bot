@@ -5,6 +5,7 @@ from pathlib import Path
 
 from progressos_bot.retry_queue import (
     SQLiteRetryQueue,
+    build_retry_queue_diagnostic_bundle,
     summarize_dead_letters,
     summarize_retry_queue,
 )
@@ -36,6 +37,20 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete one dead-letter entry after operator confirmation.",
     )
     _add_recovery_arguments(discard_parser)
+    diagnostic_parser = subparsers.add_parser(
+        "diagnostic-bundle",
+        help="Print a redacted diagnostic bundle for a correlation ID.",
+    )
+    diagnostic_parser.add_argument(
+        "--correlation-id",
+        required=True,
+        help="Correlation ID returned to the user or found in structured logs.",
+    )
+    diagnostic_parser.add_argument(
+        "--idempotency-key",
+        default=None,
+        help="Optional retry/dead-letter idempotency key to include matching metadata.",
+    )
     args = parser.parse_args(argv)
 
     queue = SQLiteRetryQueue(path=str(args.path))
@@ -51,6 +66,14 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.command == "diagnostic-bundle":
+        bundle = build_retry_queue_diagnostic_bundle(
+            queue,
+            correlation_id=args.correlation_id,
+            idempotency_key=args.idempotency_key,
+        )
+        print(bundle.model_dump_json(indent=2))
         return 0
     if args.command == "requeue":
         _require_confirmation(parser, args.command, args.idempotency_key, args.confirm)
