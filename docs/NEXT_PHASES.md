@@ -78,7 +78,7 @@ Features:
   unavailable.
 - Add an offline parser evaluation fixture set for Indonesian and English messages -
   started.
-- Track parse outcome metrics by model, intent, language, and failure category.
+- Track parse outcome metrics by model, intent, language, and failure category - started.
 
 Current implementation slice:
 
@@ -87,8 +87,8 @@ Current implementation slice:
 - The default remains `off` until evaluation results justify changing behavior.
 - `progressos-bot-eval-parser` evaluates offline parser output fixtures without calling
   Groq.
-- Evaluation summaries include pass/fail breakdowns by intent, language, and failure
-  category.
+- Evaluation summaries include pass/fail breakdowns by model, intent, language, risk
+  category, and failure category.
 
 Acceptance criteria:
 

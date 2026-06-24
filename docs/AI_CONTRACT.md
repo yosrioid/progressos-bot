@@ -56,7 +56,7 @@ make eval-parser
 progressos-bot-eval-parser tests/fixtures/llm_security_evaluation.json
 ```
 
-The evaluator prints total pass/fail counts plus breakdowns by intent, language, and
+The evaluator prints total pass/fail counts plus breakdowns by model, intent, language,
 risk category, and failure category.
 
 ## Supported Intent: create_task

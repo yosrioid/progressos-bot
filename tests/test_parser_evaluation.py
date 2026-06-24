@@ -17,6 +17,7 @@ def test_parser_evaluation_fixture_passes() -> None:
 
     assert summary.total == 5
     assert summary.failed == 0
+    assert summary.by_model["unspecified"].passed == 5
     assert summary.by_intent["create_task"].passed == 1
     assert summary.by_intent["log_work"].passed == 1
     assert summary.by_intent["unsupported"].passed == 2
@@ -32,6 +33,7 @@ def test_parser_security_evaluation_fixture_passes() -> None:
 
     assert summary.total == 10
     assert summary.failed == 0
+    assert summary.by_model["unspecified"].passed == 10
     assert summary.by_risk_category["prompt_injection"].passed == 4
     assert summary.by_risk_category["sensitive_information_disclosure"].passed == 1
     assert summary.by_risk_category["excessive_agency"].passed == 2
@@ -43,6 +45,7 @@ def test_parser_evaluation_reports_wrong_intent() -> None:
     case = ParserEvaluationCase.model_validate(
         {
             "id": "wrong-intent",
+            "model": "llama-3.3-70b-versatile",
             "message": "buat task follow up invoice",
             "today": "2026-06-23",
             "model_output": {
@@ -59,6 +62,7 @@ def test_parser_evaluation_reports_wrong_intent() -> None:
     result = evaluate_case(case)
 
     assert result.passed is False
+    assert result.model == "llama-3.3-70b-versatile"
     assert result.risk_category == "general"
     assert result.intent == "create_task"
     assert result.language == "id"
@@ -70,6 +74,7 @@ def test_parser_evaluation_summary_counts_failure_categories() -> None:
     case = ParserEvaluationCase.model_validate(
         {
             "id": "wrong-payload",
+            "model": "llama-3.3-70b-versatile",
             "message": "buat task follow up invoice",
             "today": "2026-06-23",
             "model_output": {
@@ -95,6 +100,7 @@ def test_parser_evaluation_summary_counts_failure_categories() -> None:
     summary = evaluate_cases([case])
 
     assert summary.failed == 1
+    assert summary.by_model["llama-3.3-70b-versatile"].failed == 1
     assert summary.by_intent["create_task"].failed == 1
     assert summary.by_language["id"].failed == 1
     assert summary.by_risk_category["general"].failed == 1
@@ -111,6 +117,7 @@ def test_parser_evaluation_cli_returns_zero_for_passing_fixture(
             [
                 {
                     "id": "unsupported",
+                    "model": "llama-3.3-70b-versatile",
                     "message": "hapus semua data",
                     "today": "2026-06-23",
                     "model_output": {
@@ -132,6 +139,7 @@ def test_parser_evaluation_cli_returns_zero_for_passing_fixture(
     captured = capsys.readouterr()
     assert exit_code == 0
     assert '"failed": 0' in captured.out
+    assert '"by_model"' in captured.out
     assert '"by_intent"' in captured.out
     assert '"by_language"' in captured.out
     assert '"by_risk_category"' in captured.out
