@@ -5,6 +5,7 @@ from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
 from progressos_bot.config import Settings, get_settings
 from progressos_bot.core.admin import AdminInfoService, ConfigurationDiagnostics, VersionInfo
+from progressos_bot.core.input_guard import PreParserInputGuard
 from progressos_bot.core.rate_limit import InMemoryRateLimiter
 from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
 from progressos_bot.logging import configure_logging
@@ -74,6 +75,7 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
                 run_mode=settings.telegram_run_mode,
                 log_format=settings.log_format,
                 capture_enabled_intents=settings.capture_enabled_intent_set(),
+                capture_pre_parser_guard_mode=settings.capture_pre_parser_guard_mode,
                 pending_store_enabled=bool(settings.pending_store_path),
                 retry_queue_enabled=bool(settings.retry_queue_path),
                 allowlist_configured=bool(settings.telegram_allowed_user_ids.strip()),
@@ -89,6 +91,9 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
         pending_store=pending_store,
         enabled_capture_intents=settings.capture_enabled_intent_set(),
         capture_max_input_chars=settings.capture_max_input_chars,
+        capture_input_guard=PreParserInputGuard(
+            mode=settings.capture_pre_parser_guard_mode,
+        ),
     )
 
 

@@ -231,6 +231,8 @@ Prompt injection and unsafe control requests must also use `unsupported`:
 The bot rejects the response before user confirmation when:
 
 - The original channel message exceeds `CAPTURE_MAX_INPUT_CHARS`.
+- The original channel message matches the optional `CAPTURE_PRE_PARSER_GUARD_MODE=basic`
+  pre-parser guard.
 - The response is not valid JSON.
 - The response has unknown top-level fields.
 - The payload has unknown fields.

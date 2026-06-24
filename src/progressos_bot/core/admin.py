@@ -27,6 +27,7 @@ class ConfigurationDiagnostics:
     run_mode: str
     log_format: str
     capture_enabled_intents: Collection[str]
+    capture_pre_parser_guard_mode: str
     pending_store_enabled: bool
     retry_queue_enabled: bool
     allowlist_configured: bool
@@ -41,6 +42,7 @@ class ConfigurationDiagnostics:
                 f"Mode: {self.run_mode}",
                 f"Log: {self.log_format}",
                 f"Capture intents: {self._format_collection(self.capture_enabled_intents)}",
+                f"Pre-parser guard: {self.capture_pre_parser_guard_mode}",
                 f"Pending store: {self._format_bool(self.pending_store_enabled)}",
                 f"Retry queue: {self._format_bool(self.retry_queue_enabled)}",
                 f"Allowlist: {self._format_bool(self.allowlist_configured)}",

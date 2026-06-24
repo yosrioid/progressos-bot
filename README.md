@@ -57,6 +57,7 @@ RETRY_QUEUE_PATH=./storage/retry.sqlite3
 RETRY_DEAD_LETTER_AFTER_ATTEMPTS=5
 CAPTURE_ENABLED_INTENTS=create_task,create_blocker,log_work,log_daily_progress,capture_learning
 CAPTURE_MAX_INPUT_CHARS=2000
+CAPTURE_PRE_PARSER_GUARD_MODE=off
 APP_TIMEZONE=Asia/Jakarta
 APP_DEFAULT_LANGUAGE=id
 LOG_FORMAT=text
@@ -109,6 +110,8 @@ Parser language `unknown` is normalized to `APP_DEFAULT_LANGUAGE`, which default
 Capture intents can be limited with `CAPTURE_ENABLED_INTENTS`; disabled intents are rejected
 before confirmation and are not sent to ProgressOS.
 Very long capture messages are rejected before parser calls using `CAPTURE_MAX_INPUT_CHARS`.
+High-risk deployments can set `CAPTURE_PRE_PARSER_GUARD_MODE=basic` to block obvious
+prompt-injection and secret-exfiltration text before parser calls.
 ProgressOS requests include `X-ProgressOS-API-Version` from `PROGRESSOS_API_VERSION`,
 defaulting to `v1`.
 

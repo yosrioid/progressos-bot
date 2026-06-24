@@ -16,6 +16,7 @@ from progressos_bot.ai.parser import MessageParser
 from progressos_bot.core.admin import AdminInfoService
 from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.core.identity import CaptureIdentityService
+from progressos_bot.core.input_guard import InputGuard
 from progressos_bot.core.rate_limit import NoopRateLimiter, RateLimiter
 from progressos_bot.core.read_commands import ReadCommandFlow
 from progressos_bot.identity import (
@@ -50,6 +51,7 @@ class ProgressOSTelegramBot:
         pending_store: PendingActionStore | None = None,
         enabled_capture_intents: Collection[str] | None = None,
         capture_max_input_chars: int = 2000,
+        capture_input_guard: InputGuard | None = None,
     ) -> None:
         self._token = token
         self._progressos = progressos
@@ -71,6 +73,7 @@ class ProgressOSTelegramBot:
             pending=pending,
             enabled_intents=enabled_capture_intents,
             max_input_chars=capture_max_input_chars,
+            input_guard=capture_input_guard,
         )
 
     def build_application(self) -> Any:

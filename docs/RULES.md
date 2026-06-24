@@ -64,6 +64,7 @@ Reject the AI result when:
 - The confirmation text is empty.
 - The intent is disabled by `CAPTURE_ENABLED_INTENTS`.
 - The original message exceeds `CAPTURE_MAX_INPUT_CHARS`.
+- The original message matches the optional `CAPTURE_PRE_PARSER_GUARD_MODE=basic` guard.
 
 ## Channel Conversation Rules
 
@@ -84,6 +85,7 @@ Reject the AI result when:
 15. Use `LOG_FORMAT=json` for structured operational logs in deployments that need machine-readable logs.
 16. Disabled capture intents must not create pending confirmations or call ProgressOS.
 17. Messages longer than `CAPTURE_MAX_INPUT_CHARS` must not be sent to the parser.
+18. Messages blocked by `CAPTURE_PRE_PARSER_GUARD_MODE=basic` must not be sent to the parser.
 
 ## ProgressOS Integration Rules
 

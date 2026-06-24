@@ -106,3 +106,20 @@ def test_capture_max_input_chars_defaults_to_resource_safe_limit() -> None:
 def test_capture_max_input_chars_is_capped_at_action_request_limit() -> None:
     with pytest.raises(ValidationError):
         make_settings(capture_max_input_chars=5001)
+
+
+def test_capture_pre_parser_guard_mode_defaults_to_off() -> None:
+    settings = make_settings()
+
+    assert settings.capture_pre_parser_guard_mode == "off"
+
+
+def test_capture_pre_parser_guard_mode_accepts_basic() -> None:
+    settings = make_settings(capture_pre_parser_guard_mode="basic")
+
+    assert settings.capture_pre_parser_guard_mode == "basic"
+
+
+def test_capture_pre_parser_guard_mode_rejects_unknown_value() -> None:
+    with pytest.raises(ValidationError):
+        make_settings(capture_pre_parser_guard_mode="strict")
