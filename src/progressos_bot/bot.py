@@ -41,7 +41,7 @@ class ProgressOSTelegramBot:
     def __init__(
         self,
         token: str,
-        parser: MessageParser,
+        parser: MessageParser | None,
         progressos: ProgressOSClient,
         authorizer: TelegramAllowlist,
         user_map: TelegramProgressOSUserMap,
@@ -52,6 +52,8 @@ class ProgressOSTelegramBot:
         enabled_capture_intents: Collection[str] | None = None,
         capture_max_input_chars: int = 2000,
         capture_input_guard: InputGuard | None = None,
+        capture_flow: CaptureFlow | None = None,
+        read_flow: ReadCommandFlow | None = None,
     ) -> None:
         self._token = token
         self._progressos = progressos
@@ -63,18 +65,23 @@ class ProgressOSTelegramBot:
             authorizer=authorizer,
             progressos_user_resolver=user_map,
         )
-        self._read_flow = ReadCommandFlow(progressos=progressos)
-        pending = pending_store or InMemoryPendingActionStore(
-            ttl_seconds=confirmation_ttl_seconds
-        )
-        self._capture_flow = CaptureFlow(
-            parser=parser,
-            progressos=progressos,
-            pending=pending,
-            enabled_intents=enabled_capture_intents,
-            max_input_chars=capture_max_input_chars,
-            input_guard=capture_input_guard,
-        )
+        self._read_flow = read_flow or ReadCommandFlow(progressos=progressos)
+        if capture_flow is not None:
+            self._capture_flow = capture_flow
+        else:
+            if parser is None:
+                raise ValueError("parser is required when capture_flow is not provided.")
+            pending = pending_store or InMemoryPendingActionStore(
+                ttl_seconds=confirmation_ttl_seconds
+            )
+            self._capture_flow = CaptureFlow(
+                parser=parser,
+                progressos=progressos,
+                pending=pending,
+                enabled_intents=enabled_capture_intents,
+                max_input_chars=capture_max_input_chars,
+                input_guard=capture_input_guard,
+            )
 
     def build_application(self) -> Any:
         app = Application.builder().token(self._token).build()

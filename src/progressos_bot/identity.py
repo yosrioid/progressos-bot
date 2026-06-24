@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Protocol
+from typing import Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,7 +29,9 @@ class ProgressOSUserResolver(Protocol):
     def resolve(self, identity: ChannelUserIdentity) -> str: ...
 
 
-class TelegramAllowlist:
+class ChannelAllowlist:
+    _channel = "telegram"
+
     def __init__(
         self,
         allowed_user_ids: Iterable[str],
@@ -45,15 +47,18 @@ class TelegramAllowlist:
         }
 
     @classmethod
-    def from_csv(cls, value: str, revoked_value: str = "") -> "TelegramAllowlist":
+    def from_csv(cls, value: str, revoked_value: str = "") -> Self:
         return cls(value.split(","), revoked_value.split(","))
 
     def is_revoked(self, identity: ChannelUserIdentity) -> bool:
-        return identity.channel == "telegram" and identity.channel_user_id in self._revoked_user_ids
+        return (
+            identity.channel == self._channel
+            and identity.channel_user_id in self._revoked_user_ids
+        )
 
     def is_authorized(self, identity: ChannelUserIdentity) -> bool:
         return (
-            identity.channel == "telegram"
+            identity.channel == self._channel
             and identity.channel_user_id in self._allowed_user_ids
             and not self.is_revoked(identity)
         )
@@ -65,27 +70,45 @@ class TelegramAllowlist:
             raise UserAuthorizationError("User belum diizinkan memakai bot ini.")
 
 
-class TelegramProgressOSUserMap:
+class TelegramAllowlist(ChannelAllowlist):
+    _channel = "telegram"
+
+
+class WebChatAllowlist(ChannelAllowlist):
+    _channel = "web_chat"
+
+
+class ChannelProgressOSUserMap:
+    _channel = "telegram"
+
     def __init__(self, mappings: dict[str, str]) -> None:
         self._mappings = mappings
 
     @classmethod
-    def from_csv(cls, value: str) -> "TelegramProgressOSUserMap":
+    def from_csv(cls, value: str) -> Self:
         mappings: dict[str, str] = {}
         for entry in value.split(","):
             stripped = entry.strip()
             if not stripped:
                 continue
-            telegram_user_id, separator, progressos_user_id = stripped.partition(":")
-            if not separator or not telegram_user_id.strip() or not progressos_user_id.strip():
-                raise ValueError("Invalid TELEGRAM_PROGRESSOS_USER_MAP entry.")
-            mappings[telegram_user_id.strip()] = progressos_user_id.strip()
+            channel_user_id, separator, progressos_user_id = stripped.partition(":")
+            if not separator or not channel_user_id.strip() or not progressos_user_id.strip():
+                raise ValueError(f"Invalid {cls.__name__} entry.")
+            mappings[channel_user_id.strip()] = progressos_user_id.strip()
         return cls(mappings)
 
     def resolve(self, identity: ChannelUserIdentity) -> str:
-        if identity.channel != "telegram":
+        if identity.channel != self._channel:
             raise UserMappingError("Channel belum didukung.")
         progressos_user_id = self._mappings.get(identity.channel_user_id)
         if progressos_user_id is None:
             raise UserMappingError("User belum terhubung ke ProgressOS.")
         return progressos_user_id
+
+
+class TelegramProgressOSUserMap(ChannelProgressOSUserMap):
+    _channel = "telegram"
+
+
+class WebChatProgressOSUserMap(ChannelProgressOSUserMap):
+    _channel = "web_chat"

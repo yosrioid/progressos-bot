@@ -61,10 +61,28 @@ has started. Both responses return only coarse status values and never include s
 
 ## Web Chat Route
 
-The webhook server can mount an opt-in web chat POST route when a caller provides
-`web_chat_path`, `web_chat_secret`, and a web chat handler. The route requires
-`X-ProgressOS-Web-Chat-Secret` and is disabled by default. Do not expose this route until
-ingress authentication and ProgressOS user mapping are explicitly configured.
+The webhook server can mount an opt-in web chat POST route when `WEB_CHAT_PATH` is set.
+The route requires `X-ProgressOS-Web-Chat-Secret` to match `WEB_CHAT_SECRET` and is
+disabled by default; setting `WEB_CHAT_PATH` without `WEB_CHAT_SECRET` fails configuration
+validation at startup.
+
+The route only runs in `TELEGRAM_RUN_MODE=webhook` mode, since it shares the same HTTP
+listener as the Telegram webhook. It reuses the same `CaptureFlow`, `ReadCommandFlow`, and
+ProgressOS client instances as the Telegram bot, so confirmations and ProgressOS writes
+behave identically across both channels.
+
+Identity resolution for web chat uses its own bootstrap mapping, mirroring the Telegram
+allowlist pattern until ProgressOS exposes server-side identity resolution (Phase 13):
+
+- `WEB_CHAT_ALLOWED_USER_IDS`: comma-separated web chat user IDs allowed to capture or
+  read.
+- `WEB_CHAT_PROGRESSOS_USER_MAP`: comma-separated `web_chat_user_id:progressos_user_id`
+  pairs.
+
+The request body must include a `type` discriminator of `"message"` or `"confirmation"`
+with the matching `message` or `confirmation` payload. Do not expose this route until
+ingress authentication and the web chat user map are explicitly configured for the
+deployment.
 
 ## Retry Queue Operations
 

@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Literal, get_args
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import AnyHttpUrl, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from progressos_bot.schemas import Intent
@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     capture_enabled_intents: str = DEFAULT_CAPTURE_ENABLED_INTENTS
     capture_max_input_chars: int = Field(default=2000, gt=0, le=5000)
     capture_pre_parser_guard_mode: Literal["off", "basic"] = "off"
+    web_chat_path: str | None = Field(default=None, pattern=r"^/[A-Za-z0-9/_-]+$")
+    web_chat_secret: str = ""
+    web_chat_allowed_user_ids: str = ""
+    web_chat_progressos_user_map: str = ""
 
     app_env: Literal["local", "staging", "production"] = "local"
     app_timezone: str = "Asia/Jakarta"
@@ -62,6 +66,13 @@ class Settings(BaseSettings):
             ZoneInfo(value)
         except ZoneInfoNotFoundError as exc:
             raise ValueError("app_timezone must be a valid IANA timezone name") from exc
+        return value
+
+    @field_validator("web_chat_secret")
+    @classmethod
+    def validate_web_chat_secret(cls, value: str, info: ValidationInfo) -> str:
+        if info.data.get("web_chat_path") and not value:
+            raise ValueError("web_chat_secret is required when web_chat_path is set.")
         return value
 
     @field_validator("capture_enabled_intents")

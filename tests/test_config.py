@@ -123,3 +123,25 @@ def test_capture_pre_parser_guard_mode_accepts_basic() -> None:
 def test_capture_pre_parser_guard_mode_rejects_unknown_value() -> None:
     with pytest.raises(ValidationError):
         make_settings(capture_pre_parser_guard_mode="strict")
+
+
+def test_web_chat_path_and_secret_default_to_disabled() -> None:
+    settings = make_settings()
+
+    assert settings.web_chat_path is None
+    assert settings.web_chat_secret == ""
+
+
+def test_web_chat_path_requires_secret() -> None:
+    with pytest.raises(ValidationError, match="web_chat_secret is required"):
+        make_settings(web_chat_path="/web-chat/message")
+
+
+def test_web_chat_path_with_secret_is_accepted() -> None:
+    settings = make_settings(
+        web_chat_path="/web-chat/message",
+        web_chat_secret="web-chat-secret",
+    )
+
+    assert settings.web_chat_path == "/web-chat/message"
+    assert settings.web_chat_secret == "web-chat-secret"

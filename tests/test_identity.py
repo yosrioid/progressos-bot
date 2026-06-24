@@ -6,6 +6,8 @@ from progressos_bot.identity import (
     TelegramProgressOSUserMap,
     UserAuthorizationError,
     UserMappingError,
+    WebChatAllowlist,
+    WebChatProgressOSUserMap,
 )
 
 
@@ -66,3 +68,32 @@ def test_telegram_progressos_user_map_rejects_unmapped_user() -> None:
 def test_telegram_progressos_user_map_rejects_invalid_entries() -> None:
     with pytest.raises(ValueError, match="Invalid"):
         TelegramProgressOSUserMap.from_csv("123")
+
+
+def test_web_chat_allowlist_authorizes_configured_user() -> None:
+    allowlist = WebChatAllowlist.from_csv("abc, def")
+    identity = ChannelUserIdentity(channel="web_chat", channel_user_id="abc")
+
+    assert allowlist.is_authorized(identity)
+
+
+def test_web_chat_allowlist_does_not_authorize_telegram_identity() -> None:
+    allowlist = WebChatAllowlist.from_csv("123")
+    identity = ChannelUserIdentity(channel="telegram", channel_user_id="123")
+
+    assert not allowlist.is_authorized(identity)
+
+
+def test_web_chat_progressos_user_map_resolves_configured_user() -> None:
+    user_map = WebChatProgressOSUserMap.from_csv("abc:77,def:88")
+    identity = ChannelUserIdentity(channel="web_chat", channel_user_id="abc")
+
+    assert user_map.resolve(identity) == "77"
+
+
+def test_web_chat_progressos_user_map_rejects_telegram_identity() -> None:
+    user_map = WebChatProgressOSUserMap.from_csv("123:77")
+    identity = ChannelUserIdentity(channel="telegram", channel_user_id="123")
+
+    with pytest.raises(UserMappingError, match="belum didukung"):
+        user_map.resolve(identity)
