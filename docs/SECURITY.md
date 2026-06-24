@@ -10,6 +10,56 @@ Keep these values only in `.env` or the deployment secret manager:
 
 Never commit `.env`.
 
+## Secret Rotation Runbook
+
+Rotate secrets from the provider first, then update the deployment secret store, then
+restart the bot. Do not paste old or new secret values into tickets, chat, logs, or pull
+requests.
+
+Use this order for planned rotation:
+
+1. Create the replacement secret in Telegram, Groq, or ProgressOS.
+2. Store the replacement value in the deployment secret manager.
+3. Restart the bot process so it reads the new environment.
+4. Run a minimal smoke check:
+   - `/version` returns the expected app version.
+   - `/diagnostics` shows the expected environment, run mode, and configured flags.
+   - A safe capture draft reaches confirmation but is not submitted unless explicitly
+     confirmed.
+5. Revoke the previous secret after the new deployment is healthy.
+6. Watch logs for Telegram, Groq, ProgressOS, and webhook authentication errors.
+
+For suspected compromise, revoke the old secret before redeploying. Cancel active pending
+drafts if an operator believes a compromised channel or model key could have influenced
+pending confirmations. Keep retry queue data only when the queued payloads were created
+under a trusted token and still match the intended ProgressOS user attribution.
+
+Recommended rotation triggers:
+
+- A secret was committed, pasted into chat, exposed in logs, or shared outside the
+  deployment boundary.
+- A team member or automation with secret access is offboarded.
+- Provider audit logs show unexpected usage.
+- Deployment hosts, CI secrets, or runtime secret stores were rebuilt after an incident.
+- Periodic production hygiene requires scheduled rotation.
+
+## Model Key Scope
+
+`GROQ_API_KEY` is used only for parsing natural-language capture text into the strict local
+action schema. The key should not have access to unrelated provider projects, training
+datasets, production administration, billing administration, or non-bot workloads.
+
+Operational guidance:
+
+- Use a dedicated provider key for this bot and environment.
+- Prefer separate keys for local, staging, and production.
+- Restrict the key to the minimum model/API access the deployment needs when the provider
+  supports scoped keys.
+- Keep `GROQ_MODEL` and `GROQ_STRUCTURED_OUTPUT_MODE` as configuration changes, not code
+  hotfixes, and evaluate model changes before changing production defaults.
+- Treat model output as untrusted even when using a scoped key or structured outputs.
+- Never reuse the Groq key as a ProgressOS, Telegram, webhook, CI, or database secret.
+
 ## Authorization
 
 The first version uses a single ProgressOS API token. Before production use, ProgressOS
