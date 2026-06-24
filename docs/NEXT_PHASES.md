@@ -281,7 +281,7 @@ Suggested release: `v0.4.0`.
 
 ## Phase 16: Channel Expansion
 
-Status: proposed.
+Status: in progress.
 
 Goal: prove the channel-neutral core with a second real channel.
 
@@ -289,7 +289,7 @@ Candidate channels:
 
 - Slack for workspace users.
 - Discord for community/team channels.
-- Web chat for ProgressOS dashboard embedding.
+- Web chat for ProgressOS dashboard embedding - adapter foundation implemented.
 
 Rules:
 
@@ -300,9 +300,19 @@ Rules:
 
 Acceptance criteria:
 
-- One new channel can capture and confirm at least `create_task` and `log_work`.
-- Read-only commands work with that channel's identity resolution path.
-- Tests cover the adapter without Telegram-specific classes.
+- One new channel can capture and confirm at least `create_task` and `log_work` -
+  implemented for the web chat adapter foundation.
+- Read-only commands work with that channel's identity resolution path - implemented in
+  web chat adapter tests.
+- Tests cover the adapter without Telegram-specific classes - implemented for the web
+  chat adapter foundation.
+
+Remaining implementation:
+
+- Add an HTTP or dashboard embedding surface that translates web chat requests to the
+  adapter events.
+- Wire production web identity resolution once ProgressOS exposes the Phase 13 identity
+  endpoint.
 
 Suggested release: `v0.4.x` or later.
 
