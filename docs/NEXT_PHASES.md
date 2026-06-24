@@ -263,7 +263,9 @@ Features:
   `progressos-bot-retry-queue status`.
 - Admin command or CLI command to inspect dead-letter metadata without secrets -
   implemented with `progressos-bot-retry-queue dead-letters`.
-- Requeue or discard dead-letter entries with explicit operator confirmation.
+- Requeue or discard dead-letter entries with explicit operator confirmation -
+  implemented with `progressos-bot-retry-queue requeue` and
+  `progressos-bot-retry-queue discard`.
 - Export redacted diagnostic bundle for a correlation ID.
 - Document production runbook for retries, dead letters, webhook health, and dependency
   outage triage.
