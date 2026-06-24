@@ -6,7 +6,7 @@ SECRET_FIELD_PATTERN = re.compile(
     re.IGNORECASE,
 )
 SECRET_VALUE_PATTERN = re.compile(
-    r"(?i)(bearer\s+)[A-Za-z0-9._~+/-]+=*|([A-Za-z0-9_]*token[A-Za-z0-9_]*=)[^,\s]+"
+    r"(?i)([A-Za-z0-9_]*token[A-Za-z0-9_]*=)[^,\s]+|(bearer\s+)[A-Za-z0-9._~+/-]+=*"
 )
 REDACTED = "[redacted]"
 
