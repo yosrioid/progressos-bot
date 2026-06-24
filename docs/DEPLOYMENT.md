@@ -26,6 +26,9 @@ LOG_FORMAT=json
 Use deployment secret storage for tokens and webhook secret values. Do not bake them into
 images, service files, or reverse proxy config.
 
+For rotation and incident response, follow the secret rotation and model-key scope
+guidance in `docs/SECURITY.md`.
+
 ## Process Command
 
 Run the package entrypoint in webhook mode:

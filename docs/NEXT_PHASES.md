@@ -117,7 +117,7 @@ Features:
 - Add tests proving parser output cannot add unauthorized API targets, headers, or
   ProgressOS paths - started.
 - Add optional pre-parser guard mode for high-risk deployments - started.
-- Document operational guidance for secret rotation and model-key scope.
+- Document operational guidance for secret rotation and model-key scope - started.
 
 Acceptance criteria:
 
@@ -140,6 +140,8 @@ Current implementation slice:
   ProgressOS paths.
 - `CAPTURE_PRE_PARSER_GUARD_MODE=basic` blocks obvious prompt-injection and
   secret-exfiltration text before parser calls.
+- `docs/SECURITY.md` documents secret rotation steps, incident triggers, and model-key
+  scope guidance.
 
 ## Phase 13: ProgressOS-Owned Identity Resolution
 
