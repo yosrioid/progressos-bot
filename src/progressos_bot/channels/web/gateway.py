@@ -60,37 +60,37 @@ class WebChatGateway:
         )
 
         if message.text.strip() == "/dashboard":
-            result = await self._read_flow.dashboard()
+            read_result = await self._read_flow.dashboard()
             await self._adapter.send_text(
                 conversation_id=message.conversation_id,
-                text=result.user_message,
+                text=read_result.user_message,
             )
             return WebChatGatewayResponse(
-                correlation_id=result.correlation_id,
+                correlation_id=read_result.correlation_id,
                 deliveries=self._adapter.drain_deliveries(),
             )
 
-        result = await self._capture_flow.begin_capture(
+        capture_result = await self._capture_flow.begin_capture(
             user_key=_web_chat_user_key(inbound.session),
             original_text=message.text,
         )
-        if result.status == "confirmation_required":
+        if capture_result.status == "confirmation_required":
             await self._adapter.request_confirmation(
                 ConfirmationRequest(
-                    request_id=result.correlation_id,
+                    request_id=capture_result.correlation_id,
                     conversation_id=message.conversation_id,
                     user=message.user,
-                    prompt_text=result.user_message,
+                    prompt_text=capture_result.user_message,
                 )
             )
         else:
             await self._adapter.send_text(
                 conversation_id=message.conversation_id,
-                text=result.user_message,
+                text=capture_result.user_message,
             )
 
         return WebChatGatewayResponse(
-            correlation_id=result.correlation_id,
+            correlation_id=capture_result.correlation_id,
             deliveries=self._adapter.drain_deliveries(),
         )
 
