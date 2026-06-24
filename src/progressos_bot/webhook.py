@@ -1,8 +1,9 @@
 import asyncio
+import concurrent.futures
 import json
 import logging
 import signal
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,12 +22,23 @@ class WebhookServerConfig:
     health_path: str
     readiness_path: str
     webhook_secret: str = ""
+    web_chat_path: str | None = None
+    web_chat_secret: str = ""
 
 
 class TelegramWebhookServer:
-    def __init__(self, *, config: WebhookServerConfig, application: Any) -> None:
+    def __init__(
+        self,
+        *,
+        config: WebhookServerConfig,
+        application: Any,
+        web_chat_handler: (
+            Callable[[dict[str, Any]], Coroutine[Any, Any, dict[str, Any]]] | None
+        ) = None,
+    ) -> None:
         self._config = config
         self._application = application
+        self._web_chat_handler = web_chat_handler
         self._server: ThreadingHTTPServer | None = None
 
     async def serve_until_stopped(self) -> None:
@@ -61,6 +73,7 @@ class TelegramWebhookServer:
     def _make_handler(self, loop: asyncio.AbstractEventLoop) -> type[BaseHTTPRequestHandler]:
         config = self._config
         application = self._application
+        web_chat_handler = self._web_chat_handler
 
         class Handler(BaseHTTPRequestHandler):
             server_version = "ProgressOSWebhook/1.0"
@@ -81,6 +94,14 @@ class TelegramWebhookServer:
                 self._write_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
 
             def do_POST(self) -> None:
+                if (
+                    config.web_chat_path
+                    and self.path == config.web_chat_path
+                    and web_chat_handler is not None
+                ):
+                    self._handle_web_chat_post()
+                    return
+
                 if self.path != config.webhook_path:
                     self._write_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
                     return
@@ -120,6 +141,36 @@ class TelegramWebhookServer:
 
                 self._write_json(HTTPStatus.OK, {"status": "accepted"})
 
+            def _handle_web_chat_post(self) -> None:
+                if web_chat_handler is None:
+                    self._write_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+                    return
+                if not self._has_valid_web_chat_secret():
+                    self._write_json(HTTPStatus.FORBIDDEN, {"error": "forbidden"})
+                    return
+
+                payload = self._read_json_body()
+                if payload is None:
+                    return
+
+                try:
+                    future: concurrent.futures.Future[dict[str, Any]] = (
+                        asyncio.run_coroutine_threadsafe(
+                            web_chat_handler(payload),
+                            loop,
+                        )
+                    )
+                    response_payload = future.result(timeout=30)
+                except Exception:
+                    logger.exception("Failed to process web chat request")
+                    self._write_json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {"error": "processing_failed"},
+                    )
+                    return
+
+                self._write_json(HTTPStatus.OK, response_payload)
+
             def _has_valid_secret(self) -> bool:
                 if not config.webhook_secret:
                     return True
@@ -128,7 +179,36 @@ class TelegramWebhookServer:
                     == config.webhook_secret
                 )
 
-            def _write_json(self, status: HTTPStatus, payload: dict[str, str]) -> None:
+            def _has_valid_web_chat_secret(self) -> bool:
+                if not config.web_chat_secret:
+                    return False
+                return (
+                    self.headers.get("X-ProgressOS-Web-Chat-Secret")
+                    == config.web_chat_secret
+                )
+
+            def _read_json_body(self) -> dict[str, Any] | None:
+                content_length = self.headers.get("Content-Length")
+                if content_length is None:
+                    self._write_json(
+                        HTTPStatus.LENGTH_REQUIRED,
+                        {"error": "missing_content_length"},
+                    )
+                    return None
+
+                try:
+                    body = self.rfile.read(int(content_length))
+                    payload = json.loads(body)
+                except ValueError:
+                    self._write_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_json"})
+                    return None
+
+                if not isinstance(payload, dict):
+                    self._write_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_json"})
+                    return None
+                return payload
+
+            def _write_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
                 body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")

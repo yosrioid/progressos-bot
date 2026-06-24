@@ -292,6 +292,8 @@ Candidate channels:
 - Web chat for ProgressOS dashboard embedding - adapter foundation implemented.
 - Web chat dashboard payload gateway - implemented for capture, confirmation, and
   `/dashboard` read command payloads.
+- Opt-in web chat server route primitive - implemented with
+  `X-ProgressOS-Web-Chat-Secret` protection.
 
 Rules:
 
@@ -311,8 +313,8 @@ Acceptance criteria:
 
 Remaining implementation:
 
-- Add a production HTTP route or dashboard embedding host around the web chat payload
-  gateway once ingress authentication is decided.
+- Wire the web chat route into the production runtime configuration after deciding the
+  dashboard ingress and identity mapping deployment model.
 - Wire production web identity resolution once ProgressOS exposes the Phase 13 identity
   endpoint.
 
