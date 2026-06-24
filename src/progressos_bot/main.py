@@ -1,15 +1,25 @@
 import asyncio
+from dataclasses import dataclass
 
 from progressos_bot.ai.groq_client import GroqParserClient
 from progressos_bot.ai.parser import MessageParser
 from progressos_bot.bot import ProgressOSTelegramBot
+from progressos_bot.channels.web.route import WebChatHttpHandler
 from progressos_bot.config import Settings, get_settings
 from progressos_bot.core.admin import AdminInfoService, ConfigurationDiagnostics, VersionInfo
+from progressos_bot.core.capture_flow import CaptureFlow
+from progressos_bot.core.identity import CaptureIdentityService
 from progressos_bot.core.input_guard import PreParserInputGuard
 from progressos_bot.core.rate_limit import InMemoryRateLimiter
-from progressos_bot.identity import TelegramAllowlist, TelegramProgressOSUserMap
+from progressos_bot.core.read_commands import ReadCommandFlow
+from progressos_bot.identity import (
+    TelegramAllowlist,
+    TelegramProgressOSUserMap,
+    WebChatAllowlist,
+    WebChatProgressOSUserMap,
+)
 from progressos_bot.logging import configure_logging
-from progressos_bot.pending import SQLitePendingActionStore
+from progressos_bot.pending import InMemoryPendingActionStore, SQLitePendingActionStore
 from progressos_bot.progressos_client import ProgressOSClient
 from progressos_bot.retry_queue import SQLiteRetryQueue
 from progressos_bot.version import get_package_version
@@ -20,7 +30,14 @@ from progressos_bot.webhook import (
 )
 
 
-def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
+@dataclass
+class CoreRuntime:
+    progressos: ProgressOSClient
+    capture_flow: CaptureFlow
+    read_flow: ReadCommandFlow
+
+
+def build_core_runtime(settings: Settings) -> CoreRuntime:
     groq = GroqParserClient(
         api_key=settings.groq_api_key,
         model=settings.groq_model,
@@ -53,10 +70,27 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
             ttl_seconds=settings.confirmation_ttl_seconds,
         )
 
-    return ProgressOSTelegramBot(
-        token=settings.telegram_bot_token,
+    pending = pending_store or InMemoryPendingActionStore(
+        ttl_seconds=settings.confirmation_ttl_seconds
+    )
+    capture_flow = CaptureFlow(
         parser=parser,
         progressos=progressos,
+        pending=pending,
+        enabled_intents=settings.capture_enabled_intent_set(),
+        max_input_chars=settings.capture_max_input_chars,
+        input_guard=PreParserInputGuard(mode=settings.capture_pre_parser_guard_mode),
+    )
+    read_flow = ReadCommandFlow(progressos=progressos)
+
+    return CoreRuntime(progressos=progressos, capture_flow=capture_flow, read_flow=read_flow)
+
+
+def build_telegram_bot(settings: Settings, runtime: CoreRuntime) -> ProgressOSTelegramBot:
+    return ProgressOSTelegramBot(
+        token=settings.telegram_bot_token,
+        parser=None,
+        progressos=runtime.progressos,
         authorizer=TelegramAllowlist.from_csv(
             settings.telegram_allowed_user_ids,
             revoked_value=settings.telegram_revoked_user_ids,
@@ -88,21 +122,38 @@ def build_telegram_bot(settings: Settings) -> ProgressOSTelegramBot:
             window_seconds=settings.rate_limit_window_seconds,
         ),
         confirmation_ttl_seconds=settings.confirmation_ttl_seconds,
-        pending_store=pending_store,
-        enabled_capture_intents=settings.capture_enabled_intent_set(),
-        capture_max_input_chars=settings.capture_max_input_chars,
-        capture_input_guard=PreParserInputGuard(
-            mode=settings.capture_pre_parser_guard_mode,
+        capture_flow=runtime.capture_flow,
+        read_flow=runtime.read_flow,
+    )
+
+
+def build_web_chat_handler(
+    settings: Settings, runtime: CoreRuntime
+) -> WebChatHttpHandler | None:
+    if not settings.web_chat_path:
+        return None
+    identity_service = CaptureIdentityService(
+        authorizer=WebChatAllowlist.from_csv(settings.web_chat_allowed_user_ids),
+        progressos_user_resolver=WebChatProgressOSUserMap.from_csv(
+            settings.web_chat_progressos_user_map
         ),
+    )
+    return WebChatHttpHandler(
+        identity_service=identity_service,
+        capture_flow=runtime.capture_flow,
+        read_flow=runtime.read_flow,
     )
 
 
 def run_polling(settings: Settings) -> None:
-    build_telegram_bot(settings).build_application().run_polling()
+    runtime = build_core_runtime(settings)
+    build_telegram_bot(settings, runtime).build_application().run_polling()
 
 
 def run_webhook(settings: Settings) -> None:
-    application = build_telegram_bot(settings).build_application()
+    runtime = build_core_runtime(settings)
+    application = build_telegram_bot(settings, runtime).build_application()
+    web_chat_handler = build_web_chat_handler(settings, runtime)
     server = TelegramWebhookServer(
         config=WebhookServerConfig(
             host=settings.webhook_host,
@@ -111,8 +162,11 @@ def run_webhook(settings: Settings) -> None:
             health_path=settings.health_path,
             readiness_path=settings.readiness_path,
             webhook_secret=settings.telegram_webhook_secret,
+            web_chat_path=settings.web_chat_path,
+            web_chat_secret=settings.web_chat_secret,
         ),
         application=application,
+        web_chat_handler=web_chat_handler.handle if web_chat_handler else None,
     )
     webhook_url = str(settings.telegram_webhook_url) if settings.telegram_webhook_url else None
     asyncio.run(

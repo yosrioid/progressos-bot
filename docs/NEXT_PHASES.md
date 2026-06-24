@@ -294,6 +294,10 @@ Candidate channels:
   `/dashboard` read command payloads.
 - Opt-in web chat server route primitive - implemented with
   `X-ProgressOS-Web-Chat-Secret` protection.
+- Wire the web chat route into the production runtime configuration - implemented with
+  a shared `CoreRuntime` (one `CaptureFlow` and `ReadCommandFlow` instance) used by both
+  the Telegram bot and the web chat route, and a `WEB_CHAT_PROGRESSOS_USER_MAP` /
+  `WEB_CHAT_ALLOWED_USER_IDS` bootstrap identity mapping mirroring the Telegram pattern.
 
 Rules:
 
@@ -311,12 +315,24 @@ Acceptance criteria:
 - Tests cover the adapter without Telegram-specific classes - implemented for the web
   chat adapter foundation.
 
+Completed implementation:
+
+- `main.py` builds one shared `CoreRuntime` (ProgressOS client, `CaptureFlow`,
+  `ReadCommandFlow`) and passes it into both the Telegram bot and the web chat handler so
+  neither channel duplicates business logic or pending-confirmation state.
+- `progressos_bot.channels.web.route.WebChatHttpHandler` validates a `type`-discriminated
+  request envelope (`message` or `confirmation`) and delegates to `WebChatGateway`.
+- `WebChatAllowlist` and `WebChatProgressOSUserMap` mirror the existing Telegram bootstrap
+  identity classes, scoped to the `web_chat` channel.
+- `Settings.web_chat_secret` validation rejects configuration where `web_chat_path` is set
+  without a secret, so the route cannot be exposed unprotected by accident.
+
 Remaining implementation:
 
-- Wire the web chat route into the production runtime configuration after deciding the
-  dashboard ingress and identity mapping deployment model.
 - Wire production web identity resolution once ProgressOS exposes the Phase 13 identity
-  endpoint.
+  endpoint, replacing `WEB_CHAT_PROGRESSOS_USER_MAP`.
+- Decide and implement the actual dashboard ingress (reverse proxy, auth in front of the
+  route, CORS) for a real deployment; this phase only wires the bot-owned side.
 
 Suggested release: `v0.4.x` or later.
 
