@@ -59,6 +59,13 @@ GET /ready
 `/health` confirms the HTTP listener is alive. `/ready` confirms the Telegram application
 has started. Both responses return only coarse status values and never include secrets.
 
+## Web Chat Route
+
+The webhook server can mount an opt-in web chat POST route when a caller provides
+`web_chat_path`, `web_chat_secret`, and a web chat handler. The route requires
+`X-ProgressOS-Web-Chat-Secret` and is disabled by default. Do not expose this route until
+ingress authentication and ProgressOS user mapping are explicitly configured.
+
 ## Retry Queue Operations
 
 When `RETRY_QUEUE_PATH` is configured, operators can inspect retry storage without opening

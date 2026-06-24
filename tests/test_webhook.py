@@ -100,12 +100,15 @@ def _post_json(
     payload: dict[str, object],
     *,
     secret: str | None = None,
+    web_chat_secret: str | None = None,
 ) -> tuple[int, dict[str, str]]:
     data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(url, data=data, method="POST")
     request.add_header("Content-Type", "application/json")
     if secret is not None:
         request.add_header("X-Telegram-Bot-Api-Secret-Token", secret)
+    if web_chat_secret is not None:
+        request.add_header("X-ProgressOS-Web-Chat-Secret", web_chat_secret)
     try:
         with urllib.request.urlopen(request, timeout=1) as response:
             return response.status, json.loads(response.read().decode("utf-8"))
@@ -122,8 +125,15 @@ async def _async_post_json(
     payload: dict[str, object],
     *,
     secret: str | None = None,
+    web_chat_secret: str | None = None,
 ) -> tuple[int, dict[str, str]]:
-    return await asyncio.to_thread(_post_json, url, payload, secret=secret)
+    return await asyncio.to_thread(
+        _post_json,
+        url,
+        payload,
+        secret=secret,
+        web_chat_secret=web_chat_secret,
+    )
 
 
 @pytest.mark.asyncio
@@ -211,6 +221,101 @@ async def test_webhook_server_accepts_valid_secret() -> None:
             secret="expected-secret",
         ) == (200, {"status": "accepted"})
         assert app.processed_updates == 1
+    finally:
+        server.shutdown()
+        await asyncio.wait_for(task, timeout=2)
+
+
+@pytest.mark.asyncio
+async def test_webhook_server_rejects_invalid_web_chat_secret() -> None:
+    port = _free_port()
+    received_payloads: list[dict[str, object]] = []
+
+    async def web_chat_handler(payload: dict[str, object]) -> dict[str, object]:
+        received_payloads.append(payload)
+        return {"status": "accepted"}
+
+    server = TelegramWebhookServer(
+        config=WebhookServerConfig(
+            host="127.0.0.1",
+            port=port,
+            webhook_path="/telegram/webhook",
+            health_path="/health",
+            readiness_path="/ready",
+            web_chat_path="/web-chat/message",
+            web_chat_secret="expected-secret",
+        ),
+        application=FakeApplication(running=True),
+        web_chat_handler=web_chat_handler,
+    )
+    task = asyncio.create_task(server.serve_until_stopped())
+    try:
+        await _wait_for_server(f"http://127.0.0.1:{port}/health")
+
+        assert await _async_post_json(
+            f"http://127.0.0.1:{port}/web-chat/message",
+            {"message_id": "msg-1"},
+            web_chat_secret="wrong-secret",
+        ) == (403, {"error": "forbidden"})
+        assert received_payloads == []
+    finally:
+        server.shutdown()
+        await asyncio.wait_for(task, timeout=2)
+
+
+@pytest.mark.asyncio
+async def test_webhook_server_routes_web_chat_payload_with_valid_secret() -> None:
+    port = _free_port()
+    received_payloads: list[dict[str, object]] = []
+
+    async def web_chat_handler(payload: dict[str, object]) -> dict[str, object]:
+        received_payloads.append(payload)
+        return {
+            "correlation_id": "corr-web",
+            "deliveries": [
+                {
+                    "delivery_type": "text",
+                    "session_id": "session-1",
+                    "text": "Dashboard siap",
+                }
+            ],
+        }
+
+    server = TelegramWebhookServer(
+        config=WebhookServerConfig(
+            host="127.0.0.1",
+            port=port,
+            webhook_path="/telegram/webhook",
+            health_path="/health",
+            readiness_path="/ready",
+            web_chat_path="/web-chat/message",
+            web_chat_secret="expected-secret",
+        ),
+        application=FakeApplication(running=True),
+        web_chat_handler=web_chat_handler,
+    )
+    task = asyncio.create_task(server.serve_until_stopped())
+    try:
+        await _wait_for_server(f"http://127.0.0.1:{port}/health")
+
+        status, payload = await _async_post_json(
+            f"http://127.0.0.1:{port}/web-chat/message",
+            {"message_id": "msg-1", "text": "/dashboard"},
+            web_chat_secret="expected-secret",
+        )
+
+        assert status == 200
+        assert payload == {
+            "correlation_id": "corr-web",
+            "deliveries": [
+                {
+                    "delivery_type": "text",
+                    "session_id": "session-1",
+                    "text": "Dashboard siap",
+                }
+            ],
+        }
+        assert received_payloads == [{"message_id": "msg-1", "text": "/dashboard"}]
     finally:
         server.shutdown()
         await asyncio.wait_for(task, timeout=2)
