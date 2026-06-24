@@ -11,6 +11,10 @@ from progressos_bot.channels.web.adapter import (
     WebChatInboundMessage,
     WebChatSession,
 )
+from progressos_bot.channels.web.gateway import (
+    WebChatConfirmationPayload,
+    WebChatGateway,
+)
 from progressos_bot.core.capture_flow import CaptureFlow
 from progressos_bot.core.identity import CaptureIdentityService
 from progressos_bot.core.read_commands import ReadCommandFlow
@@ -256,3 +260,105 @@ async def test_web_chat_read_command_uses_channel_identity_resolution_path() -> 
             text="Dashboard siap",
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_web_chat_gateway_handles_dashboard_payload() -> None:
+    adapter = WebChatChannelAdapter()
+    authorizer = FakeAuthorizer()
+    resolver = FakeResolver()
+    gateway = WebChatGateway(
+        adapter=adapter,
+        identity_service=CaptureIdentityService(
+            authorizer=authorizer,
+            progressos_user_resolver=resolver,
+        ),
+        capture_flow=CaptureFlow(
+            parser=FakeParser(actions_by_message={}),
+            progressos=FakeProgressOS(),
+            pending=InMemoryPendingActionStore(ttl_seconds=60),
+        ),
+        read_flow=ReadCommandFlow(
+            progressos=FakeReadClient(),
+            correlation_id_factory=lambda: "corr-web-dashboard",
+        ),
+    )
+
+    response = await gateway.handle_message(make_inbound_message("/dashboard"))
+
+    assert response.correlation_id == "corr-web-dashboard"
+    assert response.model_dump(mode="json") == {
+        "correlation_id": "corr-web-dashboard",
+        "deliveries": [
+            {
+                "delivery_type": "text",
+                "session_id": "session-1",
+                "text": "Dashboard siap",
+                "request_id": None,
+            }
+        ],
+    }
+    assert authorizer.seen_identities == [
+        ChannelUserIdentity(channel=WEB_CHAT_CHANNEL, channel_user_id="web-user-1")
+    ]
+    assert resolver.seen_identities == [
+        ChannelUserIdentity(channel=WEB_CHAT_CHANNEL, channel_user_id="web-user-1")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_web_chat_gateway_handles_capture_confirmation_payload() -> None:
+    adapter = WebChatChannelAdapter()
+    progressos = FakeProgressOS()
+    gateway = WebChatGateway(
+        adapter=adapter,
+        identity_service=CaptureIdentityService(
+            authorizer=FakeAuthorizer(),
+            progressos_user_resolver=FakeResolver(),
+        ),
+        capture_flow=CaptureFlow(
+            parser=FakeParser(
+                actions_by_message={"buat task review web chat": make_task_action()}
+            ),
+            progressos=progressos,
+            pending=InMemoryPendingActionStore(ttl_seconds=60),
+            correlation_id_factory=lambda: "corr-web-capture",
+        ),
+        read_flow=ReadCommandFlow(progressos=FakeReadClient()),
+    )
+
+    draft_response = await gateway.handle_message(
+        make_inbound_message("buat task review web chat")
+    )
+    confirm_response = await gateway.handle_confirmation(
+        WebChatConfirmationPayload(
+            request_id="corr-web-capture",
+            session=WebChatSession(
+                session_id="session-1",
+                user_id="web-user-1",
+                display_name="Ryo",
+            ),
+            decision="confirm",
+        )
+    )
+
+    assert draft_response.correlation_id == "corr-web-capture"
+    assert draft_response.deliveries == [
+        WebChatDelivery(
+            delivery_type="confirmation_request",
+            session_id="session-1",
+            text="Buat task Review web chat adapter?",
+            request_id="corr-web-capture",
+        )
+    ]
+    assert confirm_response.correlation_id == "corr-web-capture"
+    assert confirm_response.deliveries == [
+        WebChatDelivery(
+            delivery_type="text",
+            session_id="session-1",
+            text="Capture tersimpan.",
+        )
+    ]
+    assert len(progressos.submitted_requests) == 1
+    assert progressos.submitted_requests[0].source == WEB_CHAT_CHANNEL
+    assert progressos.submitted_requests[0].progressos_user_id == "77"
