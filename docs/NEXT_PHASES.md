@@ -228,6 +228,8 @@ Current implementation slice:
 - `GuidedCaptureChannelFlow` lets channel adapters request guided confirmations and submit
   confirmed guided drafts through the existing `CaptureFlow`.
 - Guided channel flow rejects disabled intents without creating confirmation requests.
+- `CliGuidedCaptureForm` renders guided field prompts and builds strict guided drafts as a
+  first adapter-layer proving ground before Telegram UI work.
 
 Acceptance criteria:
 
