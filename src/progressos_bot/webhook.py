@@ -1,8 +1,9 @@
 import asyncio
+import concurrent.futures
 import json
 import logging
 import signal
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -31,7 +32,9 @@ class TelegramWebhookServer:
         *,
         config: WebhookServerConfig,
         application: Any,
-        web_chat_handler: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+        web_chat_handler: (
+            Callable[[dict[str, Any]], Coroutine[Any, Any, dict[str, Any]]] | None
+        ) = None,
     ) -> None:
         self._config = config
         self._application = application
@@ -151,9 +154,11 @@ class TelegramWebhookServer:
                     return
 
                 try:
-                    future = asyncio.run_coroutine_threadsafe(
-                        web_chat_handler(payload),
-                        loop,
+                    future: concurrent.futures.Future[dict[str, Any]] = (
+                        asyncio.run_coroutine_threadsafe(
+                            web_chat_handler(payload),
+                            loop,
+                        )
                     )
                     response_payload = future.result(timeout=30)
                 except Exception:
