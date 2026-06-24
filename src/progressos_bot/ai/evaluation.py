@@ -21,6 +21,7 @@ class ParserEvaluationCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(min_length=1)
+    model: str = Field(default="unspecified", min_length=1)
     risk_category: str = Field(default="general", min_length=1)
     message: str = Field(min_length=1)
     today: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -33,6 +34,7 @@ class ParserEvaluationResult(BaseModel):
 
     id: str
     passed: bool
+    model: str
     risk_category: str
     intent: str
     language: str
@@ -54,6 +56,7 @@ class ParserEvaluationSummary(BaseModel):
     total: int
     passed: int
     failed: int
+    by_model: dict[str, ParserEvaluationBreakdown]
     by_intent: dict[str, ParserEvaluationBreakdown]
     by_language: dict[str, ParserEvaluationBreakdown]
     by_risk_category: dict[str, ParserEvaluationBreakdown]
@@ -79,6 +82,7 @@ def evaluate_cases(
         total=len(results),
         passed=passed,
         failed=len(results) - passed,
+        by_model=_breakdown_by(results, key="model"),
         by_intent=_breakdown_by(results, key="intent"),
         by_language=_breakdown_by(results, key="language"),
         by_risk_category=_breakdown_by(results, key="risk_category"),
@@ -165,6 +169,7 @@ def _result(
     return ParserEvaluationResult(
         id=case.id,
         passed=passed,
+        model=case.model,
         risk_category=case.risk_category,
         intent=_result_intent(case, action),
         language=_result_language(case, action),
@@ -192,7 +197,7 @@ def _result_language(case: ParserEvaluationCase, action: ParsedAction | None) ->
 def _breakdown_by(
     results: list[ParserEvaluationResult],
     *,
-    key: Literal["intent", "language", "risk_category"],
+    key: Literal["model", "intent", "language", "risk_category"],
 ) -> dict[str, ParserEvaluationBreakdown]:
     breakdown: dict[str, ParserEvaluationBreakdown] = {}
     for result in results:
@@ -208,8 +213,10 @@ def _breakdown_by(
 
 def _breakdown_key(
     result: ParserEvaluationResult,
-    key: Literal["intent", "language", "risk_category"],
+    key: Literal["model", "intent", "language", "risk_category"],
 ) -> str:
+    if key == "model":
+        return result.model
     if key == "intent":
         return result.intent
     if key == "language":
