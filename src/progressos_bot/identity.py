@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Protocol
+from typing import Protocol, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -47,7 +47,7 @@ class ChannelAllowlist:
         }
 
     @classmethod
-    def from_csv(cls, value: str, revoked_value: str = "") -> "ChannelAllowlist":
+    def from_csv(cls, value: str, revoked_value: str = "") -> Self:
         return cls(value.split(","), revoked_value.split(","))
 
     def is_revoked(self, identity: ChannelUserIdentity) -> bool:
@@ -85,7 +85,7 @@ class ChannelProgressOSUserMap:
         self._mappings = mappings
 
     @classmethod
-    def from_csv(cls, value: str) -> "ChannelProgressOSUserMap":
+    def from_csv(cls, value: str) -> Self:
         mappings: dict[str, str] = {}
         for entry in value.split(","):
             stripped = entry.strip()
