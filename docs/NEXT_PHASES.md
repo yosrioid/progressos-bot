@@ -200,7 +200,7 @@ Suggested release: `v0.3.0`, depending on ProgressOS readiness.
 
 ## Phase 14: Guided Capture UX
 
-Status: complete for current core/adapter foundation.
+Status: complete, including a production Telegram inline UI.
 
 Goal: improve capture quality when free-form text is too ambiguous.
 
@@ -232,6 +232,13 @@ Completed implementation:
 - Guided channel flow rejects disabled intents without creating confirmation requests.
 - `CliGuidedCaptureForm` renders guided field prompts and builds strict guided drafts as a
   first adapter-layer proving ground before Telegram UI work.
+- `/guided` starts an inline Telegram flow: pick an intent via inline keyboard, answer one
+  field at a time (free-text reply, or inline buttons for `priority`/`severity` and for
+  skipping optional fields), then preview and confirm/cancel through the existing
+  Confirm/Cancel inline keyboard - implemented in `ProgressOSTelegramBot`.
+- `progressos_bot.channels.telegram.adapter.TelegramChannelAdapter` implements the
+  channel-neutral `ChannelAdapter` protocol for Telegram, so the guided Telegram flow goes
+  through the same `GuidedCaptureChannelFlow` and `CaptureFlow` as every other channel.
 
 Completion notes:
 
@@ -239,8 +246,11 @@ Completion notes:
 - Guided capture produces the same strict `ParsedAction` shape as free-form parser output.
 - Guided draft edits create a new validated draft and still require final confirmation.
 - Guided channel flow reuses `CaptureFlow` pending confirmation and ProgressOS submission.
-- Telegram Mini App or inline production UI remains a future UI implementation slice built
-  on this core/adapter foundation.
+- The Telegram guided flow stores in-progress field answers in `context.user_data` only
+  (per-process, not persisted); it never creates a pending ProgressOS-bound draft until all
+  fields are collected and the user presses Confirm.
+- A Telegram Mini App (hosted HTML/JS WebApp) remains a separate, larger infra project if
+  a richer UI than inline buttons/text prompts is needed later.
 
 Acceptance criteria:
 

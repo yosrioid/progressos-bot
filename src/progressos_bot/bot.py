@@ -1,7 +1,9 @@
 import logging
 from collections.abc import Collection
+from datetime import date
 from typing import Any
 
+from pydantic import ValidationError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
@@ -13,8 +15,17 @@ from telegram.ext import (
 )
 
 from progressos_bot.ai.parser import MessageParser
+from progressos_bot.channels.base import ChannelMessage, ChannelUser
+from progressos_bot.channels.telegram.adapter import TelegramChannelAdapter
 from progressos_bot.core.admin import AdminInfoService
 from progressos_bot.core.capture_flow import CaptureFlow
+from progressos_bot.core.guided_capture import (
+    GuidedCaptureChannelFlow,
+    GuidedCaptureDraft,
+    GuidedCaptureField,
+    GuidedCaptureIntent,
+    guided_capture_fields,
+)
 from progressos_bot.core.identity import CaptureIdentityService
 from progressos_bot.core.input_guard import InputGuard
 from progressos_bot.core.rate_limit import NoopRateLimiter, RateLimiter
@@ -35,6 +46,18 @@ from progressos_bot.progressos_client import (
 )
 
 logger = logging.getLogger(__name__)
+
+GUIDED_CAPTURE_INTENTS: tuple[GuidedCaptureIntent, ...] = (
+    "create_task",
+    "create_blocker",
+    "log_work",
+    "log_daily_progress",
+    "capture_learning",
+)
+
+
+def _user_data(context: ContextTypes.DEFAULT_TYPE) -> dict[str, Any] | None:
+    return getattr(context, "user_data", None)
 
 
 class ProgressOSTelegramBot:
@@ -95,6 +118,8 @@ class ProgressOSTelegramBot:
         app.add_handler(CommandHandler("learning_stats", self._handle_learning_stats))
         app.add_handler(CommandHandler("version", self._handle_version))
         app.add_handler(CommandHandler("diagnostics", self._handle_diagnostics))
+        app.add_handler(CommandHandler("guided", self._handle_guided_start))
+        app.add_handler(CallbackQueryHandler(self._handle_guided_callback, pattern=r"^guided:"))
         app.add_handler(CallbackQueryHandler(self._handle_confirmation))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
@@ -111,12 +136,17 @@ class ProgressOSTelegramBot:
         )
 
     async def _handle_cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        del context
         if update.effective_user is None or update.message is None:
             return
         if not await self._authorize_message(update):
             return
-        self._capture_flow.cancel_capture(user_key=str(update.effective_user.id))
+        user_id = update.effective_user.id
+        self._capture_flow.cancel_capture(user_key=str(user_id))
+        self._capture_flow.cancel_capture(user_key=f"telegram:{user_id}")
+        user_data = _user_data(context)
+        if user_data is not None:
+            user_data.pop("guided", None)
+            user_data["guided_pending"] = False
         await update.message.reply_text("Draft dibatalkan.")
 
     async def _handle_version(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -292,10 +322,15 @@ class ProgressOSTelegramBot:
         await update.message.reply_text(result.user_message)
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        del context
         if update.message is None or update.effective_user is None:
             return
         if not await self._authorize_message(update):
+            return
+
+        user_data = _user_data(context)
+        guided_state = user_data.get("guided") if user_data is not None else None
+        if guided_state is not None:
+            await self._handle_guided_field_answer(update, context, guided_state)
             return
 
         rate_limit = self._rate_limiter.check(str(update.effective_user.id))
@@ -333,7 +368,6 @@ class ProgressOSTelegramBot:
     async def _handle_confirmation(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
-        del context
         query = update.callback_query
         if query is None or update.effective_user is None or update.effective_chat is None:
             return
@@ -344,7 +378,16 @@ class ProgressOSTelegramBot:
             channel_user_id=str(update.effective_user.id),
         )
 
-        user_key = str(update.effective_user.id)
+        user_data = _user_data(context)
+        guided_pending = bool(user_data and user_data.get("guided_pending"))
+        user_key = (
+            f"telegram:{update.effective_user.id}"
+            if guided_pending
+            else str(update.effective_user.id)
+        )
+        if user_data is not None:
+            user_data["guided_pending"] = False
+            user_data.pop("guided", None)
 
         if query.data == "cancel":
             self._capture_flow.cancel_capture(user_key=user_key)
@@ -386,6 +429,238 @@ class ProgressOSTelegramBot:
 
         await query.edit_message_text(f"ProgressOS: {result.user_message}")
 
+    async def _handle_guided_start(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        if update.message is None:
+            return
+        if not await self._authorize_message(update):
+            return
+        user_data = _user_data(context)
+        if user_data is not None:
+            user_data.pop("guided", None)
+            user_data["guided_pending"] = False
+
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        intent.replace("_", " ").title(),
+                        callback_data=f"guided:pick:{intent}",
+                    )
+                ]
+                for intent in GUIDED_CAPTURE_INTENTS
+            ]
+        )
+        await update.message.reply_text("Pilih jenis guided capture:", reply_markup=keyboard)
+
+    async def _handle_guided_callback(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        if query is None or update.effective_user is None or update.effective_chat is None:
+            return
+        await query.answer()
+        identity = ChannelUserIdentity(
+            channel="telegram",
+            channel_user_id=str(update.effective_user.id),
+        )
+        try:
+            self._identity.require_authorized(identity)
+        except UserAuthorizationError as exc:
+            await query.edit_message_text(str(exc))
+            return
+
+        parts = (query.data or "").split(":")
+        action = parts[1] if len(parts) > 1 else ""
+        chat_id = update.effective_chat.id
+        user_id = update.effective_user.id
+        display_name = update.effective_user.full_name or None
+
+        user_data = _user_data(context)
+
+        if action == "cancel":
+            if user_data is not None:
+                user_data.pop("guided", None)
+                user_data["guided_pending"] = False
+            await query.edit_message_text("Guided capture dibatalkan.")
+            return
+
+        if action == "pick":
+            intent = parts[2]
+            if user_data is not None:
+                user_data["guided"] = {"intent": intent, "field_idx": 0, "values": {}}
+            await query.edit_message_text(
+                f"Guided capture: {intent.replace('_', ' ').title()}"
+            )
+            await self._advance_guided_flow(
+                chat_id=chat_id,
+                user_id=user_id,
+                display_name=display_name,
+                context=context,
+            )
+            return
+
+        state = user_data.get("guided") if user_data is not None else None
+        if state is None:
+            await query.edit_message_text(
+                "Sesi guided capture sudah tidak aktif. Kirim /guided untuk mulai lagi."
+            )
+            return
+
+        if action == "opt" and len(parts) == 4:
+            state["values"][parts[2]] = parts[3]
+            state["field_idx"] += 1
+        elif action == "skip" and len(parts) == 3:
+            state["field_idx"] += 1
+        else:
+            return
+
+        if user_data is not None:
+            user_data["guided"] = state
+        await self._advance_guided_flow(
+            chat_id=chat_id,
+            user_id=user_id,
+            display_name=display_name,
+            context=context,
+        )
+
+    async def _handle_guided_field_answer(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        state: dict[str, Any],
+    ) -> None:
+        if update.message is None or update.effective_user is None or update.effective_chat is None:
+            return
+
+        fields = guided_capture_fields(state["intent"])
+        field = fields[state["field_idx"]]
+        raw = (update.message.text or "").strip()
+        try:
+            value = _coerce_guided_field_value(field, raw)
+        except ValueError as exc:
+            await update.message.reply_text(str(exc))
+            return
+
+        if value is not None:
+            state["values"][field.key] = value
+        state["field_idx"] += 1
+        user_data = _user_data(context)
+        if user_data is not None:
+            user_data["guided"] = state
+
+        await self._advance_guided_flow(
+            chat_id=update.effective_chat.id,
+            user_id=update.effective_user.id,
+            display_name=update.effective_user.full_name or None,
+            context=context,
+        )
+
+    async def _advance_guided_flow(
+        self,
+        *,
+        chat_id: int,
+        user_id: int,
+        display_name: str | None,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        user_data = _user_data(context)
+        state = user_data.get("guided") if user_data is not None else None
+        if state is None:
+            return
+
+        fields = guided_capture_fields(state["intent"])
+        if state["field_idx"] >= len(fields):
+            await self._finish_guided_flow(
+                chat_id=chat_id,
+                user_id=user_id,
+                display_name=display_name,
+                context=context,
+            )
+            return
+
+        field = fields[state["field_idx"]]
+        if field.field_type == "priority":
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            option.title(),
+                            callback_data=f"guided:opt:{field.key}:{option}",
+                        )
+                        for option in field.options
+                    ]
+                ]
+            )
+            await context.bot.send_message(
+                chat_id=chat_id, text=f"Pilih {field.label}:", reply_markup=keyboard
+            )
+            return
+
+        if field.required:
+            await context.bot.send_message(chat_id=chat_id, text=f"{field.label}:")
+            return
+
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Lewati", callback_data=f"guided:skip:{field.key}")]]
+        )
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"{field.label} (opsional, kirim '-' atau tekan Lewati):",
+            reply_markup=keyboard,
+        )
+
+    async def _finish_guided_flow(
+        self,
+        *,
+        chat_id: int,
+        user_id: int,
+        display_name: str | None,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        user_data = _user_data(context)
+        state = user_data.pop("guided", None) if user_data is not None else None
+        if state is None:
+            return
+
+        intent = state["intent"]
+        values = state["values"]
+        try:
+            draft = GuidedCaptureDraft.model_validate(
+                {
+                    "intent": intent,
+                    "payload": values,
+                    "user_confirmation_text": _default_guided_confirmation_text(intent, values),
+                    "original_text": f"guided:telegram:{intent}",
+                }
+            )
+        except ValidationError as exc:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"Input guided capture tidak valid: {exc}. Kirim /guided untuk mulai lagi.",
+            )
+            return
+
+        message = ChannelMessage(
+            channel="telegram",
+            message_id=f"guided-{user_id}-{chat_id}",
+            conversation_id=str(chat_id),
+            user=ChannelUser(
+                channel="telegram",
+                channel_user_id=str(user_id),
+                display_name=display_name,
+            ),
+            text=draft.original_text,
+        )
+        guided_flow = GuidedCaptureChannelFlow(
+            capture_flow=self._capture_flow,
+            channel=TelegramChannelAdapter(bot=context.bot),
+        )
+        result = await guided_flow.request_confirmation(message=message, draft=draft)
+        if user_data is not None:
+            user_data["guided_pending"] = result.status == "confirmation_required"
+
     async def _authorize_message(self, update: Update) -> bool:
         if update.message is None:
             return False
@@ -420,3 +695,38 @@ class ProgressOSTelegramBot:
             await update.message.reply_text(str(exc))
             return False
         return True
+
+
+def _coerce_guided_field_value(field: GuidedCaptureField, raw: str) -> object | None:
+    if not raw or raw.lower() in {"-", "skip"}:
+        if field.required:
+            raise ValueError(f"{field.label} wajib diisi. Kirim nilainya.")
+        return None
+
+    if field.field_type == "date":
+        try:
+            return date.fromisoformat(raw)
+        except ValueError:
+            raise ValueError("Format tanggal harus YYYY-MM-DD. Coba lagi.") from None
+
+    if field.field_type == "duration_minutes":
+        try:
+            return int(raw)
+        except ValueError:
+            raise ValueError("Durasi harus berupa angka menit. Coba lagi.") from None
+
+    if field.field_type == "priority":
+        normalized = raw.lower()
+        if normalized not in field.options:
+            options = ", ".join(field.options)
+            raise ValueError(f"Pilih salah satu: {options}.")
+        return normalized
+
+    return raw
+
+
+def _default_guided_confirmation_text(intent: str, values: dict[str, object]) -> str:
+    title = values.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return f"Konfirmasi guided capture {intent}?"
+    return f'Konfirmasi {intent} "{title}"?'
