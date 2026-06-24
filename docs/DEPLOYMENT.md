@@ -59,6 +59,20 @@ GET /ready
 `/health` confirms the HTTP listener is alive. `/ready` confirms the Telegram application
 has started. Both responses return only coarse status values and never include secrets.
 
+## Retry Queue Operations
+
+When `RETRY_QUEUE_PATH` is configured, operators can inspect retry storage without opening
+SQLite manually:
+
+```bash
+progressos-bot-retry-queue --path "$RETRY_QUEUE_PATH" status
+progressos-bot-retry-queue --path "$RETRY_QUEUE_PATH" dead-letters
+```
+
+Both commands print JSON. Dead-letter output is metadata-only: idempotency key, capture
+type, redacted title, timestamps, attempt count, and redacted last error. It does not print
+the full quick-capture payload, request headers, bearer tokens, or environment values.
+
 ## Reverse Proxy
 
 Terminate TLS at the reverse proxy, then forward only the configured webhook path to the
