@@ -225,6 +225,9 @@ Current implementation slice:
   ProgressOS submission.
 - `guided_capture_fields()` exposes channel-neutral field metadata for date, duration,
   project, priority, and severity controls.
+- `GuidedCaptureChannelFlow` lets channel adapters request guided confirmations and submit
+  confirmed guided drafts through the existing `CaptureFlow`.
+- Guided channel flow rejects disabled intents without creating confirmation requests.
 
 Acceptance criteria:
 

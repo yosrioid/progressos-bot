@@ -72,16 +72,9 @@ class CaptureFlow:
 
     async def begin_capture(self, *, user_key: str, original_text: str) -> CaptureDraftResult:
         correlation_id = self._new_correlation_id()
-        if len(original_text) > self._max_input_chars:
-            self._metrics.increment("capture_parse_total", outcome="input_too_long")
-            return CaptureDraftResult(
-                status="unsupported",
-                user_message=(
-                    "Input terlalu panjang. "
-                    f"Maksimal {self._max_input_chars} karakter."
-                ),
-                correlation_id=correlation_id,
-            )
+        too_long = self._reject_too_long(original_text, correlation_id=correlation_id)
+        if too_long is not None:
+            return too_long
 
         guard_decision = self._input_guard.evaluate(original_text)
         if not guard_decision.allowed:
@@ -97,12 +90,35 @@ class CaptureFlow:
             )
 
         action = await self._parser.parse(original_text)
+        return self.begin_parsed_capture(
+            user_key=user_key,
+            original_text=original_text,
+            action=action,
+            correlation_id=correlation_id,
+        )
+
+    def begin_parsed_capture(
+        self,
+        *,
+        user_key: str,
+        original_text: str,
+        action: ParsedAction,
+        correlation_id: str | None = None,
+    ) -> CaptureDraftResult:
+        resolved_correlation_id = correlation_id or self._new_correlation_id()
+        too_long = self._reject_too_long(
+            original_text,
+            correlation_id=resolved_correlation_id,
+        )
+        if too_long is not None:
+            return too_long
+
         if action.intent == "unsupported":
             self._metrics.increment("capture_parse_total", outcome="unsupported")
             return CaptureDraftResult(
                 status="unsupported",
                 user_message=action.user_confirmation_text,
-                correlation_id=correlation_id,
+                correlation_id=resolved_correlation_id,
             )
 
         if action.intent not in self._enabled_intents:
@@ -110,7 +126,7 @@ class CaptureFlow:
             return CaptureDraftResult(
                 status="unsupported",
                 user_message=f"Intent {action.intent} sedang dinonaktifkan admin.",
-                correlation_id=correlation_id,
+                correlation_id=resolved_correlation_id,
             )
 
         self._metrics.increment("capture_parse_total", outcome="supported")
@@ -119,6 +135,24 @@ class CaptureFlow:
         return CaptureDraftResult(
             status="confirmation_required",
             user_message=action.user_confirmation_text,
+            correlation_id=resolved_correlation_id,
+        )
+
+    def _reject_too_long(
+        self,
+        original_text: str,
+        *,
+        correlation_id: str,
+    ) -> CaptureDraftResult | None:
+        if len(original_text) <= self._max_input_chars:
+            return None
+        self._metrics.increment("capture_parse_total", outcome="input_too_long")
+        return CaptureDraftResult(
+            status="unsupported",
+            user_message=(
+                "Input terlalu panjang. "
+                f"Maksimal {self._max_input_chars} karakter."
+            ),
             correlation_id=correlation_id,
         )
 

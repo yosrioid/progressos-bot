@@ -3,8 +3,13 @@ from dataclasses import dataclass, field
 import pytest
 from pydantic import ValidationError
 
+from progressos_bot.channels.cli.adapter import CliChannelAdapter
 from progressos_bot.core.capture_flow import CaptureFlow
-from progressos_bot.core.guided_capture import GuidedCaptureDraft, guided_capture_fields
+from progressos_bot.core.guided_capture import (
+    GuidedCaptureChannelFlow,
+    GuidedCaptureDraft,
+    guided_capture_fields,
+)
 from progressos_bot.pending import InMemoryPendingActionStore
 from progressos_bot.schemas import (
     CreateTaskPayload,
@@ -217,3 +222,92 @@ async def test_guided_capture_edit_still_requires_confirmation_before_submit() -
     submitted_action = progressos.submitted_requests[0].parsed_action
     assert isinstance(submitted_action.payload, CreateTaskPayload)
     assert submitted_action.payload.priority == "urgent"
+
+
+@pytest.mark.asyncio
+async def test_guided_channel_flow_requests_confirmation_with_preview() -> None:
+    adapter = CliChannelAdapter()
+    message = adapter.build_message(text="guided capture", user_id="admin-1")
+    guided = make_guided_task()
+    progressos = FakeProgressOS()
+    capture_flow = CaptureFlow(
+        parser=StaticGuidedParser(action=guided.to_parsed_action()),
+        progressos=progressos,
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+        correlation_id_factory=lambda: "corr-guided",
+    )
+    guided_flow = GuidedCaptureChannelFlow(
+        capture_flow=capture_flow,
+        channel=adapter,
+    )
+
+    result = await guided_flow.request_confirmation(message=message, draft=guided)
+
+    assert result.status == "confirmation_required"
+    assert adapter.sent_texts == []
+    assert len(adapter.confirmation_requests) == 1
+    request = adapter.confirmation_requests[0]
+    assert request.request_id == "corr-guided"
+    assert request.conversation_id == "local-cli"
+    assert request.user.channel_user_id == "admin-1"
+    assert "Buat task Review guided capture contract?" in request.prompt_text
+    assert "Priority: high" in request.prompt_text
+    assert progressos.submitted_requests == []
+
+
+@pytest.mark.asyncio
+async def test_guided_channel_flow_submit_confirmed_uses_channel_metadata() -> None:
+    adapter = CliChannelAdapter()
+    message = adapter.build_message(text="guided capture", user_id="admin-1")
+    guided = make_guided_task()
+    progressos = FakeProgressOS()
+    capture_flow = CaptureFlow(
+        parser=StaticGuidedParser(action=guided.to_parsed_action()),
+        progressos=progressos,
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+    )
+    guided_flow = GuidedCaptureChannelFlow(
+        capture_flow=capture_flow,
+        channel=adapter,
+    )
+
+    await guided_flow.request_confirmation(message=message, draft=guided)
+    result = await guided_flow.submit_confirmed(
+        message=message,
+        progressos_user_id="77",
+    )
+
+    assert result.submitted is True
+    assert len(progressos.submitted_requests) == 1
+    request = progressos.submitted_requests[0]
+    assert request.source == "cli"
+    assert request.source_user_id == "admin-1"
+    assert request.source_chat_id == "local-cli"
+    assert request.progressos_user_id == "77"
+    assert request.parsed_action == guided.to_parsed_action()
+
+
+@pytest.mark.asyncio
+async def test_guided_channel_flow_rejects_disabled_intent_without_confirmation() -> None:
+    adapter = CliChannelAdapter()
+    message = adapter.build_message(text="guided capture", user_id="admin-1")
+    guided = make_guided_task()
+    progressos = FakeProgressOS()
+    capture_flow = CaptureFlow(
+        parser=StaticGuidedParser(action=guided.to_parsed_action()),
+        progressos=progressos,
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+        enabled_intents={"log_work"},
+    )
+    guided_flow = GuidedCaptureChannelFlow(
+        capture_flow=capture_flow,
+        channel=adapter,
+    )
+
+    result = await guided_flow.request_confirmation(message=message, draft=guided)
+
+    assert result.status == "unsupported"
+    assert adapter.confirmation_requests == []
+    assert len(adapter.sent_texts) == 1
+    assert adapter.sent_texts[0].text == "Intent create_task sedang dinonaktifkan admin."
+    assert progressos.submitted_requests == []
