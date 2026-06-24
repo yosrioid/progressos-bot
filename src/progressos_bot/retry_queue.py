@@ -51,6 +51,23 @@ class RetryQueueSubmissionSummary(BaseModel):
     last_error: str = Field(min_length=1, max_length=500)
 
 
+class RetryQueueDiagnosticData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    counts: RetryQueueCounts
+    queued_matches: list[RetryQueueSubmissionSummary]
+    dead_letter_matches: list[RetryQueueSubmissionSummary]
+
+
+class RetryQueueDiagnosticBundle(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    correlation_id: str = Field(min_length=1)
+    generated_at: datetime
+    retry_queue: RetryQueueDiagnosticData
+    operator_notes: list[str]
+
+
 class RetryQueue(Protocol):
     def enqueue(self, submission: QueuedProgressOSSubmission) -> None: ...
 
@@ -73,6 +90,57 @@ def summarize_dead_letters(queue: RetryQueue) -> list[RetryQueueSubmissionSummar
     ]
 
 
+def build_retry_queue_diagnostic_bundle(
+    queue: RetryQueue,
+    *,
+    correlation_id: str,
+    idempotency_key: str | None = None,
+    clock: Callable[[], datetime] | None = None,
+) -> RetryQueueDiagnosticBundle:
+    queued_matches: list[RetryQueueSubmissionSummary] = []
+    dead_letter_matches: list[RetryQueueSubmissionSummary] = []
+    if idempotency_key:
+        queued_matches = [
+            _summarize_queued_submission(submission)
+            for submission in queue.list_all()
+            if submission.idempotency_key == idempotency_key
+        ]
+        dead_letter_matches = [
+            _summarize_dead_letter(submission)
+            for submission in queue.list_dead_letters()
+            if submission.idempotency_key == idempotency_key
+        ]
+
+    return RetryQueueDiagnosticBundle(
+        correlation_id=correlation_id,
+        generated_at=_normalize_utc((clock or _utc_now)()),
+        retry_queue=RetryQueueDiagnosticData(
+            counts=summarize_retry_queue(queue),
+            queued_matches=queued_matches,
+            dead_letter_matches=dead_letter_matches,
+        ),
+        operator_notes=[
+            "Search structured logs for this correlation_id.",
+            "Retry queue matches require an idempotency_key because retry storage "
+            "does not persist correlation_id.",
+        ],
+    )
+
+
+def _summarize_queued_submission(
+    submission: QueuedProgressOSSubmission,
+) -> RetryQueueSubmissionSummary:
+    return RetryQueueSubmissionSummary(
+        status="queued",
+        idempotency_key=submission.idempotency_key,
+        capture_type=submission.quick_capture.type,
+        title=redact_text(submission.quick_capture.title),
+        queued_at=submission.queued_at,
+        attempt_count=submission.attempt_count,
+        last_error=redact_text(submission.last_error),
+    )
+
+
 def _summarize_dead_letter(
     submission: DeadLetteredProgressOSSubmission,
 ) -> RetryQueueSubmissionSummary:
@@ -86,6 +154,16 @@ def _summarize_dead_letter(
         attempt_count=submission.attempt_count,
         last_error=redact_text(submission.last_error),
     )
+
+
+def _normalize_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 class InMemoryRetryQueue:
@@ -163,14 +241,11 @@ class InMemoryRetryQueue:
         return self._dead_letters.pop(idempotency_key, None)
 
     def _now(self) -> datetime:
-        value = self._clock()
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
+        return _normalize_utc(self._clock())
 
     @staticmethod
     def _utc_now() -> datetime:
-        return datetime.now(UTC)
+        return _utc_now()
 
 
 class SQLiteRetryQueue:
@@ -467,20 +542,15 @@ class SQLiteRetryQueue:
         )
 
     def _now(self) -> datetime:
-        value = self._clock()
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=UTC)
-        return value.astimezone(UTC)
+        return _normalize_utc(self._clock())
 
     @staticmethod
     def _utc_now() -> datetime:
-        return datetime.now(UTC)
+        return _utc_now()
 
     @staticmethod
     def _format_datetime(value: datetime) -> str:
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=UTC)
-        return value.astimezone(UTC).isoformat()
+        return _normalize_utc(value).isoformat()
 
     @staticmethod
     def _parse_datetime(value: str) -> datetime:

@@ -8,6 +8,7 @@ from progressos_bot.retry_queue import (
     InMemoryRetryQueue,
     QueuedProgressOSSubmission,
     SQLiteRetryQueue,
+    build_retry_queue_diagnostic_bundle,
     summarize_dead_letters,
     summarize_retry_queue,
 )
@@ -240,6 +241,47 @@ def test_dead_letter_summary_redacts_operator_metadata() -> None:
     assert "should-not-print" not in summaries[0].model_dump_json()
 
 
+def test_retry_queue_diagnostic_bundle_includes_redacted_matching_metadata() -> None:
+    generated_at = datetime(2026, 6, 22, 10, 0, tzinfo=UTC)
+    queue = InMemoryRetryQueue(dead_letter_after_attempts=3, clock=lambda: generated_at)
+    queue.enqueue(
+        QueuedProgressOSSubmission(
+            idempotency_key="fixed-key",
+            quick_capture=ProgressOSQuickCaptureRequest(
+                type="task",
+                title="Rotate progressos_token=secret-value",
+                notes="Original message includes token=should-not-print",
+            ),
+            queued_at=datetime(2026, 6, 22, 9, 30, tzinfo=UTC),
+            attempt_count=3,
+            last_error="authorization: Bearer abc.def",
+        )
+    )
+
+    bundle = build_retry_queue_diagnostic_bundle(
+        queue,
+        correlation_id="corr-123",
+        idempotency_key="fixed-key",
+        clock=lambda: generated_at,
+    )
+
+    dumped = bundle.model_dump_json()
+    assert bundle.correlation_id == "corr-123"
+    assert bundle.generated_at == generated_at
+    assert bundle.retry_queue.counts.queued_count == 0
+    assert bundle.retry_queue.counts.dead_letter_count == 1
+    assert bundle.retry_queue.queued_matches == []
+    assert len(bundle.retry_queue.dead_letter_matches) == 1
+    assert bundle.retry_queue.dead_letter_matches[0].title == (
+        "Rotate progressos_token=[redacted]"
+    )
+    assert bundle.retry_queue.dead_letter_matches[0].last_error == (
+        "authorization: Bearer [redacted]"
+    )
+    assert "secret-value" not in dumped
+    assert "should-not-print" not in dumped
+
+
 def test_retry_queue_cli_prints_status_json(tmp_path, capsys) -> None:
     path = tmp_path / "retry.sqlite3"
     queue = SQLiteRetryQueue(path=str(path))
@@ -376,3 +418,48 @@ def test_retry_queue_cli_discards_dead_letter(tmp_path, capsys) -> None:
     second_queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
     assert second_queue.list_dead_letters() == []
     assert second_queue.list_all() == []
+
+
+def test_retry_queue_cli_prints_diagnostic_bundle(tmp_path, capsys) -> None:
+    path = tmp_path / "retry.sqlite3"
+    queue = SQLiteRetryQueue(path=str(path), dead_letter_after_attempts=2)
+    queue.enqueue(
+        QueuedProgressOSSubmission(
+            idempotency_key="fixed-key",
+            quick_capture=ProgressOSQuickCaptureRequest(
+                type="task",
+                title="Rotate progressos_token=secret-value",
+                notes="Original message includes token=should-not-print",
+            ),
+            queued_at=datetime(2026, 6, 22, 9, 30, tzinfo=UTC),
+            attempt_count=2,
+            last_error="authorization: Bearer abc.def",
+        )
+    )
+
+    exit_code = retry_queue_cli_main(
+        [
+            "--path",
+            str(path),
+            "diagnostic-bundle",
+            "--correlation-id",
+            "corr-123",
+            "--idempotency-key",
+            "fixed-key",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    parsed = json.loads(captured.out)
+    assert parsed["correlation_id"] == "corr-123"
+    assert parsed["retry_queue"]["counts"] == {
+        "queued_count": 0,
+        "dead_letter_count": 1,
+    }
+    assert parsed["retry_queue"]["queued_matches"] == []
+    assert parsed["retry_queue"]["dead_letter_matches"][0]["title"] == (
+        "Rotate progressos_token=[redacted]"
+    )
+    assert "secret-value" not in captured.out
+    assert "should-not-print" not in captured.out
