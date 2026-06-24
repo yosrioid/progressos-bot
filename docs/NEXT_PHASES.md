@@ -207,8 +207,8 @@ Candidate features:
 
 - Telegram Mini App or guided inline flow for structured capture - started.
 - Date, duration, project, priority, and severity pickers.
-- Draft preview before confirmation.
-- "Edit draft" flow before submission.
+- Draft preview before confirmation - started.
+- "Edit draft" flow before submission - started.
 - Reuse the same `CaptureFlow` and ProgressOS client; do not duplicate business logic in
   channel adapters - started.
 
@@ -220,6 +220,9 @@ Current implementation slice:
   free-form parser output.
 - Guided capture tests prove drafts still flow through `CaptureFlow` pending confirmation
   before any ProgressOS submit.
+- Guided drafts can render channel-neutral preview lines before confirmation.
+- Guided payload edits create a new validated draft and still require confirmation before
+  ProgressOS submission.
 
 Acceptance criteria:
 
