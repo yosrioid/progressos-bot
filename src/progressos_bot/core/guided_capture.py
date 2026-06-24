@@ -2,6 +2,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from progressos_bot.channels.base import ChannelAdapter, ChannelMessage, ConfirmationRequest
+from progressos_bot.core.capture_flow import CaptureDraftResult, CaptureFlow, CaptureSubmitResult
 from progressos_bot.schemas import (
     CaptureLearningPayload,
     CreateBlockerPayload,
@@ -123,6 +125,63 @@ class GuidedCaptureDraft(BaseModel):
 
 def _format_field_label(value: str) -> str:
     return value.replace("_", " ").title()
+
+
+class GuidedCaptureChannelFlow:
+    def __init__(
+        self,
+        *,
+        capture_flow: CaptureFlow,
+        channel: ChannelAdapter,
+    ) -> None:
+        self._capture_flow = capture_flow
+        self._channel = channel
+
+    async def request_confirmation(
+        self,
+        *,
+        message: ChannelMessage,
+        draft: GuidedCaptureDraft,
+    ) -> CaptureDraftResult:
+        result = self._capture_flow.begin_parsed_capture(
+            user_key=_channel_user_key(message),
+            original_text=draft.original_text,
+            action=draft.to_parsed_action(),
+        )
+        if result.status != "confirmation_required":
+            await self._channel.send_text(
+                conversation_id=message.conversation_id,
+                text=result.user_message,
+            )
+            return result
+
+        await self._channel.request_confirmation(
+            ConfirmationRequest(
+                request_id=result.correlation_id,
+                conversation_id=message.conversation_id,
+                user=message.user,
+                prompt_text="\n".join([result.user_message, "", *draft.preview_lines()]),
+            )
+        )
+        return result
+
+    async def submit_confirmed(
+        self,
+        *,
+        message: ChannelMessage,
+        progressos_user_id: str | None,
+    ) -> CaptureSubmitResult:
+        return await self._capture_flow.submit_confirmed_capture(
+            user_key=_channel_user_key(message),
+            source=message.channel,
+            source_user_id=message.user.channel_user_id,
+            source_chat_id=message.conversation_id,
+            progressos_user_id=progressos_user_id,
+        )
+
+
+def _channel_user_key(message: ChannelMessage) -> str:
+    return f"{message.user.channel}:{message.user.channel_user_id}"
 
 
 def guided_capture_fields(intent: GuidedCaptureIntent) -> tuple[GuidedCaptureField, ...]:
