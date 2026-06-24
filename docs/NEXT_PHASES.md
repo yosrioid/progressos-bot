@@ -199,18 +199,27 @@ Suggested release: `v0.3.0`, depending on ProgressOS readiness.
 
 ## Phase 14: Guided Capture UX
 
-Status: proposed.
+Status: in progress.
 
 Goal: improve capture quality when free-form text is too ambiguous.
 
 Candidate features:
 
-- Telegram Mini App or guided inline flow for structured capture.
+- Telegram Mini App or guided inline flow for structured capture - started.
 - Date, duration, project, priority, and severity pickers.
 - Draft preview before confirmation.
 - "Edit draft" flow before submission.
 - Reuse the same `CaptureFlow` and ProgressOS client; do not duplicate business logic in
-  channel adapters.
+  channel adapters - started.
+
+Current implementation slice:
+
+- `GuidedCaptureDraft` provides a channel-neutral structured-input contract for guided
+  capture UIs.
+- Guided capture drafts validate to the same strict `ParsedAction` shape used by
+  free-form parser output.
+- Guided capture tests prove drafts still flow through `CaptureFlow` pending confirmation
+  before any ProgressOS submit.
 
 Acceptance criteria:
 
