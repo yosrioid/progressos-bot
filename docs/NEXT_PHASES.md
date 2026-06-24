@@ -102,22 +102,22 @@ Suggested release: `v0.2.0`.
 
 ## Phase 12: LLM Security Regression Program
 
-Status: in progress.
+Status: complete for current bot-owned scope.
 
 Goal: make LLM-specific risks explicit, testable, and repeatable.
 
 Features:
 
-- Map bot behavior to OWASP LLM risk categories relevant to this project - started:
+- Map bot behavior to OWASP LLM risk categories relevant to this project - implemented:
   prompt injection, insecure output handling, model denial of service, sensitive
   information disclosure, supply-chain vulnerabilities, and excessive agency.
 - Add prompt-injection fixture packs for Indonesian, English, mixed-language, and
-  copy-pasted system-prompt attacks - started.
-- Add tests proving the model cannot enable disabled intents - started.
+  copy-pasted system-prompt attacks - implemented.
+- Add tests proving the model cannot enable disabled intents - implemented.
 - Add tests proving parser output cannot add unauthorized API targets, headers, or
-  ProgressOS paths - started.
-- Add optional pre-parser guard mode for high-risk deployments - started.
-- Document operational guidance for secret rotation and model-key scope - started.
+  ProgressOS paths - implemented.
+- Add optional pre-parser guard mode for high-risk deployments - implemented.
+- Document operational guidance for secret rotation and model-key scope - documented.
 
 Acceptance criteria:
 
@@ -128,11 +128,13 @@ Acceptance criteria:
 
 Suggested release: `v0.2.x`.
 
-Current implementation slice:
+Completed implementation:
 
 - `tests/fixtures/llm_security_evaluation.json` covers prompt injection, sensitive
   information disclosure, excessive agency, insecure output handling, and model denial of
   service.
+- Prompt-injection fixtures cover English, Indonesian, mixed-language, and copied
+  system/developer prompt attacks.
 - Parser evaluation summaries include `by_risk_category` for security fixture reporting.
 - Capture flow regressions prove model output for disabled intents creates no pending
   draft and no ProgressOS submit.
@@ -142,6 +144,15 @@ Current implementation slice:
   secret-exfiltration text before parser calls.
 - `docs/SECURITY.md` documents secret rotation steps, incident triggers, and model-key
   scope guidance.
+
+Completion notes:
+
+- Security regression tests run in CI through `make check`.
+- Unsafe model-output fixtures either validate as `unsupported` or fail local schema
+  validation before confirmation.
+- Capture flow tests prove disabled intents and pre-parser guard blocks do not create
+  pending drafts or submit to ProgressOS.
+- Remaining identity and ProgressOS authorization hardening belongs to Phase 13.
 
 ## Phase 13: ProgressOS-Owned Identity Resolution
 
