@@ -290,6 +290,8 @@ Candidate channels:
 - Slack for workspace users.
 - Discord for community/team channels.
 - Web chat for ProgressOS dashboard embedding - adapter foundation implemented.
+- Web chat dashboard payload gateway - implemented for capture, confirmation, and
+  `/dashboard` read command payloads.
 
 Rules:
 
@@ -309,8 +311,8 @@ Acceptance criteria:
 
 Remaining implementation:
 
-- Add an HTTP or dashboard embedding surface that translates web chat requests to the
-  adapter events.
+- Add a production HTTP route or dashboard embedding host around the web chat payload
+  gateway once ingress authentication is decided.
 - Wire production web identity resolution once ProgressOS exposes the Phase 13 identity
   endpoint.
 

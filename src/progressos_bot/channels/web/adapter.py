@@ -75,3 +75,8 @@ class WebChatChannelAdapter:
                 request_id=request.request_id,
             )
         )
+
+    def drain_deliveries(self) -> list[WebChatDelivery]:
+        deliveries = list(self.deliveries)
+        self.deliveries.clear()
+        return deliveries
