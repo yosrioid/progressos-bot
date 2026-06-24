@@ -40,6 +40,22 @@ def make_action(intent: str = "create_task") -> ParsedAction:
     )
 
 
+def make_blocker_action() -> ParsedAction:
+    return ParsedAction.model_validate(
+        {
+            "intent": "create_blocker",
+            "confidence": 0.94,
+            "language": "id",
+            "payload": {
+                "title": "Blocked by missing API token",
+                "description": "Butuh token API sebelum deploy.",
+                "severity": "high",
+            },
+            "user_confirmation_text": "Catat blocker missing API token?",
+        }
+    )
+
+
 @dataclass
 class FakeParser:
     action: ParsedAction
@@ -207,6 +223,32 @@ async def test_begin_capture_rejects_disabled_intent_without_pending_submit() ->
 
     assert result.status == "unsupported"
     assert result.user_message == "Intent create_task sedang dinonaktifkan admin."
+    assert submitted.submitted is False
+    assert submitted.user_message == "Tidak ada draft aktif atau draft sudah kedaluwarsa."
+    assert client.submitted_requests == []
+
+
+@pytest.mark.asyncio
+async def test_model_output_cannot_enable_disabled_intent() -> None:
+    flow, parser, client = make_flow(
+        action=make_blocker_action(),
+        enabled_intents={"create_task"},
+    )
+
+    result = await flow.begin_capture(
+        user_key="telegram:123",
+        original_text="catat blocker deploy karena token API belum ada",
+    )
+    submitted = await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert parser.parsed_messages == ["catat blocker deploy karena token API belum ada"]
+    assert result.status == "unsupported"
+    assert result.user_message == "Intent create_blocker sedang dinonaktifkan admin."
     assert submitted.submitted is False
     assert submitted.user_message == "Tidak ada draft aktif atau draft sudah kedaluwarsa."
     assert client.submitted_requests == []

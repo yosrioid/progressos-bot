@@ -113,7 +113,7 @@ Features:
   information disclosure, supply-chain vulnerabilities, and excessive agency.
 - Add prompt-injection fixture packs for Indonesian, English, mixed-language, and
   copy-pasted system-prompt attacks - started.
-- Add tests proving the model cannot enable disabled intents.
+- Add tests proving the model cannot enable disabled intents - started.
 - Add tests proving parser output cannot add unauthorized API targets, headers, or
   ProgressOS paths - started.
 - Add optional pre-parser guard mode for high-risk deployments.
@@ -134,6 +134,8 @@ Current implementation slice:
   information disclosure, excessive agency, insecure output handling, and model denial of
   service.
 - Parser evaluation summaries include `by_risk_category` for security fixture reporting.
+- Capture flow regressions prove model output for disabled intents creates no pending
+  draft and no ProgressOS submit.
 - Payload validation tests reject parser-supplied API URLs, headers, endpoints, and
   ProgressOS paths.
 
