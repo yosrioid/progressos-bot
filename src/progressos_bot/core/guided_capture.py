@@ -76,3 +76,38 @@ class GuidedCaptureDraft(BaseModel):
                 "user_confirmation_text": self.user_confirmation_text,
             }
         )
+
+    def preview_lines(self) -> list[str]:
+        payload = self.payload.model_dump(mode="json", exclude_none=True)
+        lines = [
+            f"Intent: {self.intent}",
+            f"Title: {payload['title']}",
+        ]
+        for key, value in payload.items():
+            if key == "title":
+                continue
+            lines.append(f"{_format_field_label(key)}: {value}")
+        return lines
+
+    def apply_payload_edit(
+        self,
+        changes: dict[str, object],
+        *,
+        user_confirmation_text: str | None = None,
+    ) -> "GuidedCaptureDraft":
+        payload = self.payload.model_dump(mode="json")
+        payload.update(changes)
+        return GuidedCaptureDraft.model_validate(
+            {
+                "intent": self.intent,
+                "language": self.language,
+                "payload": payload,
+                "user_confirmation_text": user_confirmation_text
+                or self.user_confirmation_text,
+                "original_text": self.original_text,
+            }
+        )
+
+
+def _format_field_label(value: str) -> str:
+    return value.replace("_", " ").title()

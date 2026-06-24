@@ -89,6 +89,44 @@ def test_guided_capture_draft_rejects_wrong_payload_for_intent() -> None:
         )
 
 
+def test_guided_capture_draft_builds_preview_lines() -> None:
+    draft = make_guided_task()
+
+    assert draft.preview_lines() == [
+        "Intent: create_task",
+        "Title: Review guided capture contract",
+        "Description: Pastikan guided capture memakai ParsedAction.",
+        "Due Date: 2026-06-25",
+        "Priority: high",
+    ]
+
+
+def test_guided_capture_draft_apply_payload_edit_revalidates_draft() -> None:
+    draft = make_guided_task()
+
+    edited = draft.apply_payload_edit(
+        {"priority": "urgent", "due_date": "2026-06-26"},
+        user_confirmation_text="Buat task Review guided capture contract prioritas urgent?",
+    )
+    action = edited.to_parsed_action()
+
+    assert isinstance(action.payload, CreateTaskPayload)
+    assert action.payload.priority == "urgent"
+    assert action.payload.due_date is not None
+    assert action.payload.due_date.isoformat() == "2026-06-26"
+    assert (
+        action.user_confirmation_text
+        == "Buat task Review guided capture contract prioritas urgent?"
+    )
+
+
+def test_guided_capture_draft_apply_payload_edit_rejects_invalid_value() -> None:
+    draft = make_guided_task()
+
+    with pytest.raises(ValidationError):
+        draft.apply_payload_edit({"priority": "critical"})
+
+
 @pytest.mark.asyncio
 async def test_guided_capture_reuses_capture_flow_confirmation_gate() -> None:
     guided = make_guided_task()
@@ -119,3 +157,36 @@ async def test_guided_capture_reuses_capture_flow_confirmation_gate() -> None:
     assert result.submitted is True
     assert len(progressos.submitted_requests) == 1
     assert progressos.submitted_requests[0].parsed_action == guided.to_parsed_action()
+
+
+@pytest.mark.asyncio
+async def test_guided_capture_edit_still_requires_confirmation_before_submit() -> None:
+    guided = make_guided_task().apply_payload_edit({"priority": "urgent"})
+    progressos = FakeProgressOS()
+    parser = StaticGuidedParser(action=guided.to_parsed_action())
+    flow = CaptureFlow(
+        parser=parser,
+        progressos=progressos,
+        pending=InMemoryPendingActionStore(ttl_seconds=60),
+    )
+
+    draft = await flow.begin_capture(
+        user_key="telegram:123",
+        original_text=guided.original_text,
+    )
+
+    assert draft.status == "confirmation_required"
+    assert progressos.submitted_requests == []
+
+    result = await flow.submit_confirmed_capture(
+        user_key="telegram:123",
+        source_user_id="123",
+        source_chat_id="456",
+        progressos_user_id="77",
+    )
+
+    assert result.submitted is True
+    assert len(progressos.submitted_requests) == 1
+    submitted_action = progressos.submitted_requests[0].parsed_action
+    assert isinstance(submitted_action.payload, CreateTaskPayload)
+    assert submitted_action.payload.priority == "urgent"
